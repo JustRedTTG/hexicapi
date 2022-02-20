@@ -1,8 +1,10 @@
 import socket
+from hexicapi.verinfo import __version__, __title__, __author__, __license__, __copyright__
+BUFFER_SIZE = 1024
 
 ip = "localhost"
 port = 81
-functions={
+functions={ # print(list(functions)) - > shows all available functions
     'connecting':None,
     'connection_fail':None,
     'connection_success':None,
@@ -96,9 +98,15 @@ def run(app,username,password='',autoauth=True):
                         print(e)
                         return False
             return True
-        def receive(self, size = 1024):
+        def receive(self, packet_size = BUFFER_SIZE):
             try:
-                m = self.info['socket'].recv(size)
+                data = []
+                while True:
+                    packet = self.info['socket'].recv(packet_size)
+                    if not packet:
+                        break
+                    data.append(packet)
+                m = b''.join(data)
             except:
                 return False
             try:

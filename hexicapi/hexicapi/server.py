@@ -2,6 +2,7 @@ import os, sys
 import os.path
 import socket,threading,traceback
 import hexicapi.web as web
+from hexicapi.verinfo import __version__, __title__, __author__, __license__, __copyright__
 from random import randint
 from time import sleep,time
 from pgerom import save as pesave
@@ -357,9 +358,15 @@ class client:
                 client['socket'].send(message.encode())
             except:
                 client['socket'].send(message)
-    def receive(client, size = 1024):
+    def receive(client, packet_size = BUFFER_SIZE):
         try:
-            m = client['socket'].recv(size)
+            data = []
+            while True:
+                packet = client['socket'].recv(packet_size)
+                if not packet:
+                    break
+                data.append(packet)
+            m = b''.join(data)
         except:
             return False
         try:

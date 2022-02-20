@@ -1,3 +1,4 @@
+from hexicapi.verinfo import __version__, __title__, __author__, __license__, __copyright__
 import os,socket,base64,time,requests
 from bottle import route,run,post,request,response,static_file
 allowGuest=False

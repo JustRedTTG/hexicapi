@@ -1,3 +1,4 @@
+from hexicapi.verinfo import *
 import os
 i = 0
 loc=""

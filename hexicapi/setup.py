@@ -3,8 +3,10 @@ import codecs
 import os
 
 VERSION = '1.0.7'
-short = 'Tool for making servers.'
-long = 'API for making servers and clients to connect to those servers.'
+short = 'Tool for making quick servers.'
+long = '''API for making servers and clients to connect to those servers.
+
+github: https://github.com/JustRedTTG/hexicapi'''
 
 # Setting up
 setup(
