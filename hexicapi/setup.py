@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 import codecs
 import os
 
-VERSION = '1.0.7'
+VERSION = '1.0.712'
 short = 'Tool for making quick servers.'
 long = '''API for making servers and clients to connect to those servers.
 
@@ -18,7 +18,7 @@ setup(
     long_description_content_type="text/markdown",
     long_description=long,
     packages=['hexicapi'],
-    install_requires=['pgerom','pygame','bottle'],
+    install_requires=['bottle'],
     package_data={'hexicapi': ['authpage/*.html',
 
                   'authpage/css/*.css',

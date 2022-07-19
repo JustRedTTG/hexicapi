@@ -1,13 +1,22 @@
-import os, sys
-import os.path
-import socket,threading,traceback
+import os, pickle
+import threading,traceback
 import hexicapi.web as web
+from hexicapi.socketMessage import *
 from hexicapi.verinfo import __version__, __title__, __author__, __license__, __copyright__
 from random import randint
 from time import sleep,time
-from pgerom import save as pesave
-from pgerom import load as peload
-logg = None
+from hexicapi.save import save as pesave
+from hexicapi.save import load as peload
+silent=False
+log = True
+
+def arbi_reverse(bin):
+    return pickle.loads(bin)
+def arbi(*args):
+    return pickle.dumps(args)
+
+class logg:
+    def log(*self): pass
 ltar = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 identifier=0
 BUFFER_SIZE = 1024
@@ -57,6 +66,7 @@ class action:
             ag = allowGuest[app]
         except:
             ag=False
+        if username == '': return False, False
         if os.path.exists("users/"+username):
             with open("users/"+username+"/auth") as f:
                 f.seek(0)
@@ -111,8 +121,10 @@ def server():
                     connections[c]["app"] = None
                     free.append(c)
                     if ret:
-                        print(f"client {connections[c]['id']} disconnected...")
-                        logg.log("Client "+connections[c]['id']+" disconnected...")
+                        if not silent:
+                            print(f"client {connections[c]['id']} disconnected...")
+                        if log:
+                            logg.log("Client "+connections[c]['id']+" disconnected...")
         #print(connections)
         while len(console)>50:
             del console[0]
@@ -126,10 +138,10 @@ def stop():
 app_handle={}
 # Handle Clients
 def client_handle(cs,c):
-    cs.send(connections[c]["id"].encode("utf-8"))
+    send_all(cs, connections[c]["id"].encode("utf-8"))
     while connections[c]["thread"] and not die:
         try:
-            m = cs.recv(BUFFER_SIZE)
+            m = recv_all(cs, BUFFER_SIZE)
             if len(m)>0:
                 delta=time()-connections[c]["calldelta"]
                 connections[c]["calldelta"]=time()
@@ -140,42 +152,45 @@ def client_handle(cs,c):
                 d=m
                 string=False
             if d == "clientGetID":
-              cs.send(connections[c]["id"].encode())
+                send_all(cs, connections[c]["id"].encode())
             elif d == "bye":
                 break
             elif string and d.split(":")[0] == "auth":
                 _, username, password,app = d.split(":")
+                if username == '':
+                    send_all(cs, "guest-declined-no-username".encode())
+                    break
                 accept,guest=action.auth(username,password,app)
                 if accept and not guest:
                     connections[c]["username"]=username
                     connections[c]["app"]=app
                     connections[c]["auth"]=True
-                    cs.send("auth-accepted".encode())
+                    send_all(cs, "auth-accepted".encode())
                     console.append(["User "+username+" logged on",app])
                 elif accept and guest:
                     no=True
                     for con in connections:
                         if con["username"]==username:
-                            cs.send("guest-declined".encode())
+                            send_all(cs, "guest-declined".encode())
                             no=False
                             break
                     if no:
                         connections[c]["username"] = username
                         connections[c]["app"] = app
                         connections[c]["auth"] = True
-                        cs.send("guest-accepted".encode())
+                        send_all(cs, "guest-accepted".encode())
                         console.append(["Guest " + username + " hopped in",app])
                 elif guest and not accept:
-                    cs.send("guest-declined".encode())
+                    send_all(cs, "guest-declined".encode())
                 else:
-                    cs.send("auth-declined".encode())
+                    send_all(cs, "auth-declined".encode())
             else:
                 if connections[c]["auth"]:
                     if connections[c]['app'] in app_handle.keys():
                         app_handle[connections[c]['app']](connections[c],d)
                 elif d!="" and connections[c]["thread"]:
                     print("message: "+d)
-                    cs.send("request-declined".encode())
+                    send_all(cs, "request-declined".encode())
         except Exception:
             if is_socket_closed(cs):
                 break
@@ -223,8 +238,10 @@ def read():
                     connections[c]["auth"] = False
                     connections[c]["app"] = None
                     free.append(c)
-                    print(f"client {connections[c]['id']} disconnected...")
-                    logg.log("Client " + connections[c]['id'] + " disconnected...")
+                    if not silent:
+                        print(f"client {connections[c]['id']} disconnected...")
+                    if log:
+                        logg.log("Client " + connections[c]['id'] + " disconnected...")
                 c+=1
         elif inp=="users":
             for us in connections:
@@ -241,9 +258,12 @@ freed - Lists all free connection slots.
 help - Displays this.""")
         print("~DONE~")
 
-def run():
-    global ipbans, logg
-    import hexicapi.redlogger as logg
+def run(silentQ=False, logQ=True):
+    global ipbans, logg, silent, log
+    silent = silentQ
+    log = logQ
+    if log:
+        import hexicapi.redlogger as logg
     try:
         ipbans = list(peload("ipbans"))
     except:
@@ -258,7 +278,8 @@ def run():
     except:
         print("bind failed")
         exit()
-    logg.log("Connection Successful - " + ip)
+    if log:
+        logg.log("Connection Successful - " + ip)
     s.listen()
     #
     srthread = threading.Thread(target=server)
@@ -282,30 +303,34 @@ def run():
                 break
             i += 1
         try:
-            m = cs.recv(BUFFER_SIZE)
+            m = recv_all(cs, BUFFER_SIZE)
             try:
                 m.decode()
             except:
-                cs.send("welcome".encode("utf-8"))
-                print("creappy", m)
+                send_all(cs, "welcome".encode("utf-8"))
+                if not silent:
+                    print("creappy", m)
             if ban:
-                cs.send(str(ipbans[i][2]).encode())
+                send_all(cs, str(ipbans[i][2]).encode())
                 cs.close()
             elif m.decode("utf-8") == "stop" and die:
-                cs.send("bye!".encode())
+                send_all(cs, "bye!".encode())
                 cs.close()
             elif m.decode("utf-8") == "clientGetID":
                 id, c = makeID(cs)
                 thread = threading.Thread(target=client_handle, args=(cs, c))
-                print("Client on " + str(ca[0]) + " with ID " + id)
-                logg.log("Client on " + str(ca[0]) + " with ID " + id)
+                if not silent:
+                    print("Client on " + str(ca[0]) + " with ID " + id)
+                if log:
+                    logg.log("Client on " + str(ca[0]) + " with ID " + id)
                 thread.daemon = True
                 thread.start()
             elif m.decode("utf-8") == "clientGetID_NODIE":
                 id, c = makeID(cs)
                 connections[c]["die"] = False
                 thread = threading.Thread(target=client_handle, args=(cs, c))
-                print("Client on " + str(ca[0]) + " with ID " + id)
+                if not silent:
+                    print("Client on " + str(ca[0]) + " with ID " + id)
                 thread.daemon = True
                 thread.start()
             elif "GET / HTTP/1.1" in m.decode("utf-8"):
@@ -328,13 +353,19 @@ def run():
                     ba = 1
                 pesave("ipbans", *ipbans)
                 try:
-                    print("unknown host attempted connection from IP: " + ca[0] + ", ban counter: " + str(ba))
-                    logg.log("unknown host attempted connection from IP: " + ca[0] + ", ban counter: " + str(ba))
+                    if not silent:
+                        print("unknown host attempted connection from IP: " + ca[0] + ", ban counter: " + str(ba))
+                    if log:
+                        logg.log("unknown host attempted connection from IP: " + ca[0] + ", ban counter: " + str(ba))
                 except:
-                    print("unknown host attempted connection, ban counter: " + str(ba))
-                    logg.log("unknown host attempted connection, ban counter: " + str(ba))
-                print("message: " + m.decode("utf-8"))
-                logg.log("message: " + m.decode("utf-8"))
+                    if not silent:
+                        print("unknown host attempted connection, ban counter: " + str(ba))
+                    if log:
+                        logg.log("unknown host attempted connection, ban counter: " + str(ba))
+                if not silent:
+                    print("message: " + m.decode("utf-8"))
+                if log:
+                    logg.log("message: " + m.decode("utf-8"))
                 cs.send(str('please login ' + str(ba) + ' - atm=' + str(
                     time())).encode())
                 cs.close()
@@ -352,21 +383,15 @@ class client:
     def send(client, message):
         try:
             _ = message.decode()
-            client['socket'].send(message)
+            send_all(client['socket'], message)
         except:
             try:
-                client['socket'].send(message.encode())
+                send_all(client['socket'], message.encode())
             except:
-                client['socket'].send(message)
+                send_all(client['socket'], message)
     def receive(client, packet_size = BUFFER_SIZE):
         try:
-            data = []
-            while True:
-                packet = client['socket'].recv(packet_size)
-                if not packet:
-                    break
-                data.append(packet)
-            m = b''.join(data)
+            m = recv_all(client['socket'], packet_size)
         except:
             return False
         try:
