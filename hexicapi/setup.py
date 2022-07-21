@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 import codecs
 import os
 
-VERSION = '1.0.72'
+VERSION = '1.0.721'
 short = 'Tool for making quick servers.'
 long = '''API for making servers and clients to connect to those servers. 
 
