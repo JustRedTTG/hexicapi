@@ -1,4 +1,5 @@
 import hexicapi.client as client
+from random import randint
 
 # Below is a demonstration of all the different call functions
 @client.on_calf
@@ -42,7 +43,7 @@ def heartbeat_error(reason):
 client.ip = "127.0.0.1" # Set the server ip
 client.port = 8181 # Set the server port
 
-Client = client.run('example','guest') # Connect
+Client = client.run('example',f'guest{randint(111,999)}') # Connect
 
 print() # Padding
 

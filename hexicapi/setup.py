@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 import codecs
 import os
 
-VERSION = '1.0.721'
+VERSION = '1.0.722'
 short = 'Tool for making quick servers.'
 long = '''API for making servers and clients to connect to those servers. 
 
@@ -20,7 +20,7 @@ setup(
     long_description_content_type="text/markdown",
     long_description=long,
     packages=['hexicapi'],
-    install_requires=['bottle','cryptography'],
+    install_requires=['bottle','cryptography','colorama'],
     package_data={'hexicapi': ['authpage/*.html',
 
                   'authpage/css/*.css',

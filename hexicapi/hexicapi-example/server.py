@@ -26,4 +26,4 @@ def example(Client:dict, message):
 
 server.allowGuest['example'] = True # Allow guest login, aka no password
 
-server.run(True) # Enable quiet mode, cuz yeah
+server.run()

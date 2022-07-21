@@ -12,14 +12,11 @@ private_key, public_key = generate_keys()
 set_decryption_key(private_key)
 silent=False
 log = True
-
+logg = None
 def arbi_reverse(bin):
     return pickle.loads(bin)
 def arbi(*args):
     return pickle.dumps(args)
-
-class logg:
-    def log(*self): pass
 ltar = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 identifier=0
 BUFFER_SIZE = 1024
@@ -32,6 +29,7 @@ ipbans=[]
 connections = []
 rooms = []
 free = []
+s = None
 #
 allowGuest={}
 apps=[]
@@ -124,19 +122,18 @@ def server():
                     connections[c]["app"] = None
                     free.append(c)
                     if ret:
-                        if not silent:
-                            print(f"client {connections[c]['id']} disconnected...")
                         if log:
-                            logg.log("Client "+connections[c]['id']+" disconnected...")
+                            logg.server(f"Client {connections[c]['id']} disconnected...")
         #print(connections)
         while len(console)>50:
             del console[0]
         sleep(1)
 
 def stop():
-  global die
+  global die, s
   die=True
-  logg.die=True
+  logg.close_log()
+  s.close()
 
 app_handle={}
 # Handle Clients
@@ -212,7 +209,10 @@ def client_handle(cs,c):
 def read():
     global die
     while not die:
-        inp = input()
+        try: inp = input()
+        except:
+            if log: logg.reader("Detected an interruption.")
+            stop()
         if inp=="ipbans":
             for ip in ipbans:
                 if ip[1]>=10:
@@ -232,10 +232,14 @@ def read():
             i=0
             while i<len(ipbans):
                 if ipbans[i][0]==inp.split(" ")[1]:
-                    print("unbanned "+ipbans[i][0])
+                    print("unbanned",ipbans[i][0])
                     del ipbans[i]
                 i+=1
             pesave("ipbans",*ipbans)
+        elif "ban " in inp:
+            ipbans.append(inp.split(" ")[1])
+            print("banned", ipbans[i][0])
+            pesave("ipbans", *ipbans)
         elif inp=="kickall":
             c=1
             while c<len(connections):
@@ -246,10 +250,8 @@ def read():
                     connections[c]["auth"] = False
                     connections[c]["app"] = None
                     free.append(c)
-                    if not silent:
-                        print(f"client {connections[c]['id']} disconnected...")
                     if log:
-                        logg.log("Client " + connections[c]['id'] + " disconnected...")
+                        logg.reader(f"Client {connections[c]['id']} disconnected...")
                 c+=1
         elif inp=="users":
             for us in connections:
@@ -260,18 +262,26 @@ def read():
         elif inp=="help":
             print("""ipbans - Lists all IP bans.
 unban <ip> - Removes ban for IP.
+ban <ip> - Bans the IP
 kickall - Disconnects all clients.
 users - Lists all connections.
 freed - Lists all free connection slots.
-help - Displays this.""")
+help - Displays this.
+stop - Stops the server""")
+        elif inp=='stop':
+            if log: logg.reader("Stop has been init")
+            stop()
+        else: return
         print("~DONE~")
 
-def run(silentQ=False, logQ=True, enable_no_die=False):
-    global ipbans, logg, silent, log
+def run(silentQ=False, logQ=True, enable_no_die=False, webserver=False):
+    global ipbans, logg, silent, log, s
     silent = silentQ
     log = logQ
     if log:
         import hexicapi.redlogger as logg
+        logg.init()
+        logg.silent = silent
     try:
         ipbans = list(peload("ipbans"))
     except:
@@ -287,22 +297,27 @@ def run(silentQ=False, logQ=True, enable_no_die=False):
         print("bind failed")
         exit()
     if log:
-        logg.log("Connection Successful - " + ip)
+        logg.connection_acceptor("Connection Successful - " + ip)
     s.listen()
     #
     srthread = threading.Thread(target=server)
     srthread.daemon = True
     srthread.start()
-    rthread = threading.Thread(target=web.RUN, args=(ip, webport,True,webpage))
-    rthread.daemon = True
-    rthread.start()
+    #
+    if webserver:
+        rthread = threading.Thread(target=web.RUN, args=(ip, webport,True,webpage))
+        rthread.daemon = True
+        rthread.start()
     #
     readthread = threading.Thread(target=read)
     readthread.daemon = True
     readthread.start()
     # Accept Connections
     while not die:
-        cs, ca = s.accept()
+        try:
+            cs, ca = s.accept()
+        except: continue
+
         i = 0
         ban = False
         while i < len(ipbans):
@@ -327,18 +342,16 @@ def run(silentQ=False, logQ=True, enable_no_die=False):
             elif m.decode("utf-8") == "clientGetID":
                 id, c = makeID(cs)
                 thread = threading.Thread(target=client_handle, args=(cs, c))
-                if not silent:
-                    print(f"Client on {ca[0]} with ID {id}")
                 if log:
-                    logg.log(f"Client on {ca[0]} with ID {id}")
+                    logg.connection_acceptor(f"Client on {ca[0]} with ID {id}")
                 thread.daemon = True
                 thread.start()
             elif m.decode("utf-8") == "clientGetID_NODIE" and enable_no_die:
                 id, c = makeID(cs)
                 connections[c]["die"] = False
                 thread = threading.Thread(target=client_handle, args=(cs, c))
-                if not silent:
-                    print(f"NO DIE Client on {ca[0]} with ID {id}")
+                if log:
+                    logg.connection_acceptor(f"NO DIE Client on {ca[0]} with ID {id}",logg.WARNING)
                 thread.daemon = True
                 thread.start()
             elif "GET / HTTP/1.1" in m.decode("utf-8"):
@@ -361,19 +374,13 @@ def run(silentQ=False, logQ=True, enable_no_die=False):
                     ba = 1
                 pesave("ipbans", *ipbans)
                 try:
-                    if not silent:
-                        print(f"unknown host attempted connection from IP: {ca[0]} ; ban counter: {ba}")
                     if log:
-                        logg.log(f"unknown host attempted connection from IP: {ca[0]} ; ban counter: {ba}")
+                        logg.connection_acceptor(f"unknown host attempted connection from IP: {ca[0]} ; ban counter: {ba}")
                 except:
-                    if not silent:
-                        print(f"unknown host attempted connection, ban counter: {ba}")
                     if log:
-                        logg.log(f"unknown host attempted connection, ban counter: {ba}")
-                if not silent:
-                    print("message: " + m.decode("utf-8"))
+                        logg.connection_acceptor(f"unknown host attempted connection, ban counter: {ba}")
                 if log:
-                    logg.log("message: " + m.decode("utf-8"))
+                    logg.connection_acceptor("message: " + m.decode("utf-8"))
                 cs.send(str('please login ' + str(ba) + ' - atm=' + str(
                     time())).encode())
                 cs.close()
