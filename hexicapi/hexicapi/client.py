@@ -1,5 +1,6 @@
 import traceback, pickle
 from hexicapi.socketMessage import *
+from hexicapi.encryption import *
 from hexicapi.verinfo import __version__, __title__, __author__, __license__, __copyright__
 BUFFER_SIZE = 1024
 
@@ -61,15 +62,26 @@ def run(app,username,password='',autoauth=True):
         return
     calf('connection_success', "Was able to connect to the server port and ip.")
     send_all(s, "clientGetID".encode("utf-8"))
-    id = recv_all(s, BUFFER_SIZE).decode("utf-8")
-    calf('handshake', "First handshake.")
+    id_enc = recv_all(s, BUFFER_SIZE, skip=True).decode('utf-8')
+    id, enc_public = id_enc.split('\r\n')
+    enc_public = enc_public.encode('utf-8')
+    enc_public = serialization.load_pem_public_key(
+        enc_public,
+        backend=default_backend()
+    )
+    enc_private, public_key = generate_keys()
+    send_all(s, public_key, skip=True)
+    calf('handshake', "Encryption handshake.")
+
+    # set_decryption_key(enc_private)
+    # set_encryption_key(enc_public)
+
     if autoauth:
         calf('authenticating',"Autoauth was enabled.")
         try:
-            send_all(s, str('auth:' + username + ':' + password + ':' + app).encode())
-            auth_result = recv_all(s, BUFFER_SIZE).decode('utf-8')
-        except:
-            calf('disconnect', auth_states['auth-canceled'])
+            send_all(s, str('auth:' + username + ':' + password + ':' + app).encode('utf-8'),enc=enc_public)
+            auth_result = recv_all(s, BUFFER_SIZE, enc=enc_private).decode('utf-8')
+        except: calf('disconnect', auth_states['auth-canceled'])
         if auth_result == 'auth-declined' or auth_result == 'guest-declined' or auth_result == 'guest-declined-no-username':
             calf('authentication_fail', auth_states[auth_result])
         else:
@@ -80,19 +92,18 @@ def run(app,username,password='',autoauth=True):
             'port':port,
             'socket':s,
             'id':id,
+            'enc_private':enc_private,
+            'enc_public':enc_public,
             'username':username,
-            'app':app
+            'app':app,
         }
         def heartbeat(self):
             try:
-                send_all(self.info['socket'], "clientGetID".encode("utf-8"))
-                id = recv_all(self.info['socket'], BUFFER_SIZE).decode("utf-8")
-            except:
-                id=''
-            if id == self.info['id']:
-                calf('heartbeat', "The server responded.")
-            else:
-                calf('heartbeat_error', "The server didn't respond with the same id.")
+                send_all(self.info['socket'], "clientGetID".encode("utf-8"), enc=self.info['enc_public'])
+                id = recv_all(self.info['socket'], BUFFER_SIZE, enc=self.info['enc_private']).decode("utf-8")
+            except: id=''
+            if id == self.info['id']: calf('heartbeat', "The server responded.")
+            else: calf('heartbeat_error', "The server didn't respond with the same id.")
             return id
         def disconnect(self):
             disconnect_socket(self.info['socket'])
@@ -100,47 +111,33 @@ def run(app,username,password='',autoauth=True):
         def send(self, message):
             try:
                 _ = message.decode()
-                try:
-                    send_all(self.info['socket'], message)
-                except Exception as e:
-                    print(e)
-                    return False
+                try: send_all(self.info['socket'], message, enc=self.info['enc_public'])
+                except: return False
             except:
-                try:
-                    send_all(self.info['socket'], message.encode())
+                try: send_all(self.info['socket'], message.encode(), enc=self.info['enc_public'])
                 except Exception:
-                    if debug:
-                        print(traceback.format_exc())
-                    try:
-                        send_all(self.info['socket'], message)
+                    if debug: print(traceback.format_exc())
+                    try: send_all(self.info['socket'], message, enc=self.info['enc_public'])
                     except Exception:
-                        if debug:
-                            print(traceback.format_exc())
+                        if debug: print(traceback.format_exc())
                         return False
             return True
         def receive(self, packet_size = BUFFER_SIZE):
-            try:
-                m = recv_all(self.info['socket'], packet_size)
+            try: m = recv_all(self.info['socket'], packet_size, enc=self.info['enc_private'])
             except Exception:
-                if debug:
-                    print(traceback.format_exc())
+                if debug: print(traceback.format_exc())
                 return False
-            try:
-                return m.decode("utf-8")
+            try: return m.decode("utf-8")
             except Exception:
-                if debug:
-                    print(traceback.format_exc())
+                if debug: print(traceback.format_exc())
                 return m
         def auth(self, app=None, username=None, password=''):
             calf('authenticating', "Called auth.")
             auth_result = 'auth-declined'
             try:
-                send_all(s, str('auth:' + username or self.info['username'] + ':' + password + ':' + app or self.info['app']).encode())
-                auth_result = recv_all(s, BUFFER_SIZE).decode('utf-8')
-            except:
-                calf('disconnect', auth_states['auth-canceled'])
-            if auth_result == 'auth-declined' or auth_result == 'guest-declined':
-                calf('authentication_fail', auth_states[auth_result])
-            else:
-                calf('authentication_success', auth_states[auth_result])
+                send_all(s, str('auth:' + username or self.info['username'] + ':' + password + ':' + app or self.info['app']).encode(), enc=self.info['enc_public'])
+                auth_result = recv_all(s, BUFFER_SIZE, enc=self.info['enc_private']).decode('utf-8')
+            except: calf('disconnect', auth_states['auth-canceled'])
+            if auth_result == 'auth-declined' or auth_result == 'guest-declined': calf('authentication_fail', auth_states[auth_result])
+            else: calf('authentication_success', auth_states[auth_result])
     return Client()

@@ -7,6 +7,9 @@ from random import randint
 from time import sleep,time
 from hexicapi.save import save as pesave
 from hexicapi.save import load as peload
+from hexicapi.encryption import *
+private_key, public_key = generate_keys()
+set_decryption_key(private_key)
 silent=False
 log = True
 
@@ -138,59 +141,64 @@ def stop():
 app_handle={}
 # Handle Clients
 def client_handle(cs,c):
-    send_all(cs, connections[c]["id"].encode("utf-8"))
-    while connections[c]["thread"] and not die:
+    send_all(cs, f"{connections[c]['id']}\r\n{public_key.decode('utf-8')}".encode('utf-8'), skip=True)
+    connections[c]['key'] = serialization.load_pem_public_key(
+        recv_all(cs, skip=True),
+        backend=default_backend()
+    )
+    while connections[c]['thread'] and not die:
         try:
-            m = recv_all(cs, BUFFER_SIZE)
+            try:
+                m = recv_all(cs, BUFFER_SIZE, enc=private_key)
+            except:
+                break
             if len(m)>0:
-                delta=time()-connections[c]["calldelta"]
-                connections[c]["calldelta"]=time()
+                delta=time()-connections[c]['calldelta']
+                connections[c]['calldelta']=time()
             try:
                 d=m.decode()
                 string=True
             except:
                 d=m
                 string=False
-            if d == "clientGetID":
-                send_all(cs, connections[c]["id"].encode())
-            elif d == "bye":
-                break
+            if d == 'clientGetID':
+                send_all(cs, connections[c]['id'].encode(),enc=connections[c]['key'])
             elif string and d.split(":")[0] == "auth":
                 _, username, password,app = d.split(":")
                 if username == '':
-                    send_all(cs, "guest-declined-no-username".encode())
+                    send_all(cs, "guest-declined-no-username".encode(),enc=connections[c]['key'])
                     break
                 accept,guest=action.auth(username,password,app)
                 if accept and not guest:
                     connections[c]["username"]=username
                     connections[c]["app"]=app
                     connections[c]["auth"]=True
-                    send_all(cs, "auth-accepted".encode())
+                    send_all(cs, "auth-accepted".encode(),enc=connections[c]['key'])
                     console.append(["User "+username+" logged on",app])
                 elif accept and guest:
                     no=True
                     for con in connections:
                         if con["username"]==username:
-                            send_all(cs, "guest-declined".encode())
+                            send_all(cs, "guest-declined".encode(),enc=connections[c]['key'])
                             no=False
                             break
                     if no:
                         connections[c]["username"] = username
                         connections[c]["app"] = app
                         connections[c]["auth"] = True
-                        send_all(cs, "guest-accepted".encode())
+                        send_all(cs, "guest-accepted".encode(),enc=connections[c]['key'])
                         console.append(["Guest " + username + " hopped in",app])
                 elif guest and not accept:
-                    send_all(cs, "guest-declined".encode())
+                    send_all(cs, "guest-declined".encode(),enc=connections[c]['key'])
                 else:
-                    send_all(cs, "auth-declined".encode())
+                    send_all(cs, "auth-declined".encode(),enc=connections[c]['key'])
             else:
                 if connections[c]["auth"]:
                     if connections[c]['app'] in app_handle.keys():
                         app_handle[connections[c]['app']](connections[c],d)
                 elif d!="" and connections[c]["thread"]:
                     print("message: "+d)
-                    send_all(cs, "request-declined".encode())
+                    send_all(cs, "request-declined".encode(),enc=connections[c]['key'])
         except Exception:
             if is_socket_closed(cs):
                 break
@@ -258,7 +266,7 @@ freed - Lists all free connection slots.
 help - Displays this.""")
         print("~DONE~")
 
-def run(silentQ=False, logQ=True):
+def run(silentQ=False, logQ=True, enable_no_die=False):
     global ipbans, logg, silent, log
     silent = silentQ
     log = logQ
@@ -303,34 +311,34 @@ def run(silentQ=False, logQ=True):
                 break
             i += 1
         try:
-            m = recv_all(cs, BUFFER_SIZE)
+            m = recv_all(cs, BUFFER_SIZE, skip=True)
             try:
                 m.decode()
             except:
-                send_all(cs, "welcome".encode("utf-8"))
+                send_all(cs, "welcome".encode("utf-8"), skip=True)
                 if not silent:
-                    print("creappy", m)
+                    print("creepy", m)
             if ban:
-                send_all(cs, str(ipbans[i][2]).encode())
+                send_all(cs, str(ipbans[i][2]).encode(), skip=True)
                 cs.close()
             elif m.decode("utf-8") == "stop" and die:
-                send_all(cs, "bye!".encode())
+                send_all(cs, "bye!".encode(), skip=True)
                 cs.close()
             elif m.decode("utf-8") == "clientGetID":
                 id, c = makeID(cs)
                 thread = threading.Thread(target=client_handle, args=(cs, c))
                 if not silent:
-                    print("Client on " + str(ca[0]) + " with ID " + id)
+                    print(f"Client on {ca[0]} with ID {id}")
                 if log:
-                    logg.log("Client on " + str(ca[0]) + " with ID " + id)
+                    logg.log(f"Client on {ca[0]} with ID {id}")
                 thread.daemon = True
                 thread.start()
-            elif m.decode("utf-8") == "clientGetID_NODIE":
+            elif m.decode("utf-8") == "clientGetID_NODIE" and enable_no_die:
                 id, c = makeID(cs)
                 connections[c]["die"] = False
                 thread = threading.Thread(target=client_handle, args=(cs, c))
                 if not silent:
-                    print("Client on " + str(ca[0]) + " with ID " + id)
+                    print(f"NO DIE Client on {ca[0]} with ID {id}")
                 thread.daemon = True
                 thread.start()
             elif "GET / HTTP/1.1" in m.decode("utf-8"):
@@ -354,14 +362,14 @@ def run(silentQ=False, logQ=True):
                 pesave("ipbans", *ipbans)
                 try:
                     if not silent:
-                        print("unknown host attempted connection from IP: " + ca[0] + ", ban counter: " + str(ba))
+                        print(f"unknown host attempted connection from IP: {ca[0]} ; ban counter: {ba}")
                     if log:
-                        logg.log("unknown host attempted connection from IP: " + ca[0] + ", ban counter: " + str(ba))
+                        logg.log(f"unknown host attempted connection from IP: {ca[0]} ; ban counter: {ba}")
                 except:
                     if not silent:
-                        print("unknown host attempted connection, ban counter: " + str(ba))
+                        print(f"unknown host attempted connection, ban counter: {ba}")
                     if log:
-                        logg.log("unknown host attempted connection, ban counter: " + str(ba))
+                        logg.log(f"unknown host attempted connection, ban counter: {ba}")
                 if not silent:
                     print("message: " + m.decode("utf-8"))
                 if log:
@@ -376,25 +384,17 @@ def run(silentQ=False, logQ=True):
     s.close()
 
 class client:
-    def app(f):
-        app_handle[f.__name__] = f
-    def app_disconnect(f):
-        app_disconnect[f.__name__] = f
+    def app(f): app_handle[f.__name__] = f
+    def app_disconnect(f): app_disconnect[f.__name__] = f
     def send(client, message):
         try:
             _ = message.decode()
-            send_all(client['socket'], message)
+            send_all(client['socket'], message,enc=client['key'])
         except:
-            try:
-                send_all(client['socket'], message.encode())
-            except:
-                send_all(client['socket'], message)
+            try: send_all(client['socket'], message.encode(),enc=client['key'])
+            except: send_all(client['socket'], message,enc=client['key'])
     def receive(client, packet_size = BUFFER_SIZE):
-        try:
-            m = recv_all(client['socket'], packet_size)
-        except:
-            return False
-        try:
-            return m.decode("utf-8")
-        except:
-            return m
+        try: m = recv_all(client['socket'], packet_size,enc=private_key)
+        except: return False
+        try: return m.decode("utf-8")
+        except: return m

@@ -44,11 +44,14 @@ client.port = 8181 # Set the server port
 
 Client = client.run('example','guest') # Connect
 
+print() # Padding
+
 Client.send('example message from client') # Send a message to the server
 message = Client.receive() # Receive a message from the server
 
 print("Received the following from the server :")
 print(message) # Print the received message
 
+print() # Padding
 
 Client.disconnect() # Disconnect, because we're a nice client
