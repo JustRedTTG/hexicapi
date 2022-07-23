@@ -151,6 +151,9 @@ cython_debug/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 .idea/
 hexicapi/upload.bat
-hexicapi/hexicapi-example/logs/
-hexicapi/hexicapi-example/users/
-hexicapi/hexicapi-example/ipbans
+hexicapi/examples/*/logs/
+hexicapi/examples/*/users/
+hexicapi/examples/*/ipbans
+
+!hexicapi/examples/Login example/users/
+!hexicapi/examples/Game data and sync example/users/d029f87e3d80f8fd9b1be67c7426b4cc1ff47b4a9d0a8461c826a59d8c5eb6cd/credential

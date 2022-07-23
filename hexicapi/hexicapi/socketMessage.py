@@ -1,4 +1,6 @@
 import socket, time
+import traceback
+
 from hexicapi.verinfo import __version__, __title__, __author__, __license__, __copyright__
 from hexicapi.encryption import *
 working = []
@@ -45,7 +47,7 @@ def send_all(the_socket:socket.socket, data, skip=False, enc=None):
               algorithm=hashes.SHA256(),
               label=None
         ))
-        except Exception as e: print(f"ERROR: {e}")
+        except Exception as e: print(traceback.format_exc())
     while the_socket in working: pass
     working.append(the_socket)
     if not type(data) in [bytes, bytearray]:
@@ -54,9 +56,10 @@ def send_all(the_socket:socket.socket, data, skip=False, enc=None):
     length = str(len(data))
     while len(length) < 16:
         length = '0' + length
+    working.remove(the_socket)
     the_socket.send(length.encode('utf-8'))
     the_socket.send(data)
-    working.remove(the_socket)
+
 def set_encryption_key(key):
     global enc_public
     enc_public = key

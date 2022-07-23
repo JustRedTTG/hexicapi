@@ -1,9 +1,11 @@
 import pickle, os
 
-def save(file,*args):
-    with open(file, 'wb') as f: pickle.dump(args, f)
+def save(file=None,*args):
+    if type(file) == str:
+        with open(file, 'wb') as f: pickle.dump(args, f)
+    elif not file: return pickle.dumps(args)
 def load(file):
-    if os.path.exists(file):
-        with open(file,"rb") as f: args = pickle.load(f)
-        return args
+    if type(file) == str and os.path.exists(file):
+        with open(file,"rb") as f: return pickle.load(f)
+    elif type(file) in [bytes, bytearray]: return pickle.loads(file)
     else: return None

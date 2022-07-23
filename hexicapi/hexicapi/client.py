@@ -1,7 +1,8 @@
 import traceback, pickle
 from hexicapi.socketMessage import *
 from hexicapi.encryption import *
-from hexicapi.verinfo import __version__, __title__, __author__, __license__, __copyright__
+from hexicapi.save import save, load
+from hexicapi.verinfo import *
 BUFFER_SIZE = 1024
 
 ip = "localhost"
@@ -18,7 +19,10 @@ functions={ # print(list(functions)) - > shows all available functions
     'handshake':None,
     'disconnect':None,
     'heartbeat':None,
-    'heartbeat_error':None
+    'heartbeat_error':None,
+    'registering':None,
+    'registering_taken':None,
+    'registering_complete':None,
 }
 auth_states = {
     'auth-declined': "Username or Password didn't get accepted",
@@ -28,11 +32,6 @@ auth_states = {
     'guest-accepted': "Server accepted the guest username provided",
     'auth-canceled': "Server cancelled authentication.",
 }
-
-def arbi(bin):
-    return pickle.loads(bin)
-def arbi_reverse(*args):
-    return pickle.dumps(args)
 
 def on_calf(f):
     functions[f.__name__] = f
@@ -52,15 +51,15 @@ def disconnect_socket(s):
         pass
     s.close()
 
-def run(app,username,password='',autoauth=True):
+def run(app,username,password='',autoauth=True, silent=False):
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    calf('connecting', "The client was ran.")
+    if not silent: calf('connecting', "The client was ran.")
     try:
         s.connect((ip,port))
     except:
         calf('connection_fail', "Couldn't make a connection to the provided port and ip.")
         return
-    calf('connection_success', "Was able to connect to the server port and ip.")
+    if not silent: calf('connection_success', "Was able to connect to the server port and ip.")
     send_all(s, "clientGetID".encode("utf-8"))
     id_enc = recv_all(s, BUFFER_SIZE, skip=True).decode('utf-8')
     id, enc_public = id_enc.split('\r\n')
@@ -71,20 +70,20 @@ def run(app,username,password='',autoauth=True):
     )
     enc_private, public_key = generate_keys()
     send_all(s, public_key, skip=True)
-    calf('handshake', "Encryption handshake.")
+    if not silent: calf('handshake', "Encryption handshake.")
 
     # set_decryption_key(enc_private)
     # set_encryption_key(enc_public)
 
     if autoauth:
-        calf('authenticating',"Autoauth was enabled.")
+        if not silent: calf('authenticating',"Autoauth was enabled.")
         try:
             send_all(s, str('auth:' + username + ':' + password + ':' + app).encode('utf-8'),enc=enc_public)
             auth_result = recv_all(s, BUFFER_SIZE, enc=enc_private).decode('utf-8')
         except: calf('disconnect', auth_states['auth-canceled'])
         if auth_result == 'auth-declined' or auth_result == 'guest-declined' or auth_result == 'guest-declined-no-username':
             calf('authentication_fail', auth_states[auth_result])
-        else:
+        elif not silent:
             calf('authentication_success', auth_states[auth_result])
     class Client:
         info = {
@@ -131,6 +130,10 @@ def run(app,username,password='',autoauth=True):
             except Exception:
                 if debug: print(traceback.format_exc())
                 return m
+        def send_objects(self, *objs):
+            self.send(save(None, *objs))
+        def receive_objects(self, packet_size=BUFFER_SIZE):
+            return load(self.receive(packet_size))
         def auth(self, app=None, username=None, password=''):
             calf('authenticating', "Called auth.")
             auth_result = 'auth-declined'
@@ -141,3 +144,18 @@ def run(app,username,password='',autoauth=True):
             if auth_result == 'auth-declined' or auth_result == 'guest-declined': calf('authentication_fail', auth_states[auth_result])
             else: calf('authentication_success', auth_states[auth_result])
     return Client()
+
+def register(username, password):
+    calf('registering', 'Begin Registration.')
+    Client = run('registration', username, silent=True)
+    Client.send("check_username")
+    status = Client.receive()
+    if status == 'not_ok':
+        calf('registering_taken', 'The username is taken')
+        Client.disconnect()
+        return
+    Client.send("register")
+    if not Client.receive() == 'ready': return
+    Client.send(password)
+    if not Client.receive() == 'ready': return
+    calf('registering_complete', 'Account created')
