@@ -31,7 +31,6 @@ app_disconnect={}
 console=[["Welcome To The Server!","all"]]
 
 class Iden:
-
     def __init__(self, id, cs):
         self.id = id
         self.socket = cs
@@ -100,14 +99,19 @@ def get_allow_guest(app):
         return allowGuest[app]
     except: return False
 die=False
+timeout = 3
 # Handle Updates
 def discon(c):
-    if connections[c].socket in working: working.remove(connections[c].socket)
+    if connections[c].id in working: rm_record(connections[c].id)
+    else:
+        try:
+            if connections[c].socket.getsockname() in working: rm_record(connections[c].socket.getsockname())
+        except: pass
 def server():
     while not die:
         for c in range(len(connections)):
             if connections[c].thread and connections[c].die:
-                if is_socket_closed(connections[c].socket) or time.time()-connections[c].calldelta > 3:
+                if is_socket_closed(connections[c].socket) or time.time()-connections[c].calldelta > timeout:
                     ret = True
                     try:
                         ret = app_disconnect[connections[c].app](connections[c])
@@ -130,6 +134,7 @@ def server():
         #print(connections)
         while len(console)>50:
             del console[0]
+        clean_working_record()
         time.sleep(1)
 
 def stop():
@@ -212,6 +217,7 @@ def client_handle(cs,c):
 
 def read():
     global die
+    print('==READER : type help==')
     while not die:
         try: inp = input()
         except:
@@ -241,8 +247,8 @@ def read():
                 i+=1
             save("ipbans",*ipbans)
         elif "ban " in inp:
-            ipbans.append(inp.split(" ")[1])
-            print("banned", ipbans[i][0])
+            ipbans.append([inp.split(" ")[1], 100, time.time()])
+            print("banned", inp.split(" ")[1])
             save("ipbans", *ipbans)
         elif inp=="kickall":
             c=1

@@ -50,7 +50,10 @@ def disconnect_socket(s):
     except:
         pass
     s.close()
-
+class CLI:
+    def __init__(self, id, s):
+        self.id = id
+        self.socket = s
 def run(app,username,password='',autoauth=True, silent=False):
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     if not silent: calf('connecting', "The client was ran.")
@@ -69,7 +72,7 @@ def run(app,username,password='',autoauth=True, silent=False):
         backend=default_backend()
     )
     enc_private, public_key = generate_keys()
-    send_all(s, public_key, skip=True)
+    send_all(CLI(id, s), public_key, skip=True)
     if not silent: calf('handshake', "Encryption handshake.")
 
     # set_decryption_key(enc_private)
