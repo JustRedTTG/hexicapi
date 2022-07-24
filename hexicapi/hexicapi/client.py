@@ -65,7 +65,12 @@ def run(app,username,password='',autoauth=True, silent=False):
     if not silent: calf('connection_success', "Was able to connect to the server port and ip.")
     send_all(s, "clientGetID".encode("utf-8"))
     id_enc = recv_all(s, BUFFER_SIZE, skip=True).decode('utf-8')
-    id, enc_public = id_enc.split('\r\n')
+    try:
+        id, enc_public = id_enc.split('\r\n')
+    except:
+        calf('connection_fail', "probably... BANNED")
+        return None
+
     enc_public = enc_public.encode('utf-8')
     enc_public = serialization.load_pem_public_key(
         enc_public,
@@ -73,10 +78,8 @@ def run(app,username,password='',autoauth=True, silent=False):
     )
     enc_private, public_key = generate_keys()
     send_all(CLI(id, s), public_key, skip=True)
+    recv_all(CLI(id, s), enc=enc_private)
     if not silent: calf('handshake', "Encryption handshake.")
-
-    # set_decryption_key(enc_private)
-    # set_encryption_key(enc_public)
 
     if autoauth:
         if not silent: calf('authenticating',"Autoauth was enabled.")
