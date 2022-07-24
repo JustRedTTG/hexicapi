@@ -114,11 +114,10 @@ def run(app,username,password='',autoauth=True, silent=False):
             disconnect_socket(self.info['socket'])
             calf('disconnect', "User called disconnect.")
         def send(self, message):
-            try:
-                _ = message.decode()
+            if not isinstance(message, str):
                 try: send_all(self.info['socket'], message, enc=self.info['enc_public'])
                 except: return False
-            except:
+            else:
                 try: send_all(self.info['socket'], message.encode(), enc=self.info['enc_public'])
                 except Exception:
                     if debug: print(traceback.format_exc())
