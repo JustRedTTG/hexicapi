@@ -151,7 +151,7 @@ def client_handle(cs,c):
         recv_all(cs, skip=True),
         backend=default_backend()
     )
-    send_all(cs, 'ok')
+    send_all(cs, b'ok', enc=connections[c].key)
     while connections[c].thread and not die:
         try:
             try:
