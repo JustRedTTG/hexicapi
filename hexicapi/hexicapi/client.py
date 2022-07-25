@@ -125,7 +125,7 @@ class Client:
         self.send('ok')
         data = b''
         while len(data) < length:
-            data += self.receive(skip_str=True, BUFFER_SIZE=length)
+            data += self.receive(skip_str=True, packet_size=length)
             self.send('ok')
         return data
 
