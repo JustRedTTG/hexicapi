@@ -4,7 +4,7 @@ from hexicapi.encryption import *
 from hexicapi.save import save, load
 from hexicapi.verinfo import *
 BUFFER_SIZE = 1024
-FILE_SERVING_SIZE = 2048
+FILE_SERVING_SIZE = 32768
 
 ip = "localhost"
 port = 81
