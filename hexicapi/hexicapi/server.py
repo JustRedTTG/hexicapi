@@ -45,15 +45,16 @@ class Iden:
         self.keyring = None
         self.die = True
         self.room = None
+        self.lock = False
     def send(self, message):
         try:
             _ = message.decode()
-            send_all(self.socket, message,enc=self.key)
+            send_all(self, message,enc=self.key)
         except:
-            try: send_all(self.socket, message.encode(),enc=self.key)
-            except: send_all(self.socket, message,enc=self.key)
+            try: send_all(self, message.encode(),enc=self.key)
+            except: send_all(self, message,enc=self.key)
     def receive(self, packet_size = BUFFER_SIZE, skip_str=False):
-        try: m = recv_all(self.socket, packet_size,enc=private_key)
+        try: m = recv_all(self, packet_size,enc=private_key)
         except: return False
         if skip_str: return m
         try: return m.decode("utf-8")
@@ -130,7 +131,7 @@ def discon(c):
 def server():
     while not die:
         for c in range(len(connections)):
-            if connections[c].thread and connections[c].die:
+            if (not connections[c].lock) and connections[c].thread and connections[c].die:
                 if is_socket_closed(connections[c].socket) or time.time()-connections[c].calldelta > timeout:
                     ret = True
                     try:
@@ -188,6 +189,8 @@ def client_handle(cs,c):
                 string=False
             if d == 'clientGetID':
                 send_all(cs, connections[c].id.encode(),enc=connections[c].key)
+            elif d == 'bye':
+                send_all(cs, 'see you later!'.encode())
             elif string and d.split(":")[0] == "auth":
                 _, username, password,app = d.split(":")
                 if username == '':
@@ -221,7 +224,9 @@ def client_handle(cs,c):
             else:
                 if connections[c].auth:
                     if connections[c].app in app_handle.keys():
+                        connections[c].lock = True
                         app_handle[connections[c].app](connections[c],d)
+                        connections[c].lock = False
                 elif d!="" and connections[c].thread:
                     print("message: "+d)
                     send_all(cs, "request-declined".encode(),enc=connections[c].key)
@@ -229,6 +234,7 @@ def client_handle(cs,c):
             if is_socket_closed(cs):
                 break
             else:
+                connections[c].lock = False
                 print("client error occurred")
                 traceback.print_exc()
             break

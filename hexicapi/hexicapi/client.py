@@ -48,6 +48,7 @@ def calf(name, reason='No reason provided for the cause'):
 def disconnect_socket(s):
     try:
         send_all(s, 'bye'.encode())
+        recv_all(s)
     except:
         pass
     s.close()
@@ -94,6 +95,7 @@ class Client:
         except Exception:
             if debug: print(traceback.format_exc())
             return False
+        if skip_str: return m
         try: return m.decode("utf-8")
         except Exception:
             if debug: print(traceback.format_exc())
