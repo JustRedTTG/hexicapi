@@ -50,7 +50,7 @@ def recv_all(client, packet_size=1024, skip=False, enc=None):
         #         label=None
         # ))
         if sock_msg_debug: print(f"RECV data size was wrong: >{data}<")
-        return False
+        return data.encode('utf-8')
 
     data = b''
     while len(data) < data_length:
