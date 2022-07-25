@@ -128,6 +128,19 @@ def discon(c):
         try:
             if connections[c].socket.getsockname() in working: rm_record(connections[c].socket.getsockname())
         except: pass
+def complete_grid_off(c, logger, ret=True):
+    discon(c)
+    connections[c].thread = False
+    console.append([connections[c].username + " disconnected", connections[c].app])
+    connections[c].username = "Guest"
+    connections[c].auth = False
+    connections[c].keyring = None
+    connections[c].data = None
+    connections[c].app = None
+    free.append(c)
+    if ret:
+        if log:
+            logger(f"Client {connections[c].id} disconnected...")
 def server():
     while not die:
         for c in range(len(connections)):
@@ -140,18 +153,7 @@ def server():
                             ret = True
                     except:
                         pass
-                    discon(c)
-                    connections[c].thread=False
-                    console.append([connections[c].username + " disconnected",connections[c].app])
-                    connections[c].username = "Guest"
-                    connections[c].auth = False
-                    connections[c].keyring = None
-                    connections[c].data = None
-                    connections[c].app = None
-                    free.append(c)
-                    if ret:
-                        if log:
-                            logg.server(f"Client {connections[c].id} disconnected...")
+                    complete_grid_off(c, logg.server, ret)
         #print(connections)
         while len(console)>50:
             del console[0]
@@ -175,7 +177,7 @@ def client_handle(cs,c):
     while connections[c].thread and not die:
         try:
             try:
-                m = recv_all(cs, BUFFER_SIZE, enc=private_key)
+                m = recv_all(connections[c], BUFFER_SIZE, enc=private_key)
             except:
                 break
             if len(m)>0:
@@ -188,13 +190,15 @@ def client_handle(cs,c):
                 d=m
                 string=False
             if d == 'clientGetID':
-                send_all(cs, connections[c].id.encode(),enc=connections[c].key)
+                send_all(connections[c], connections[c].id.encode(),enc=connections[c].key)
             elif d == 'bye':
-                send_all(cs, 'see you later!'.encode())
+                send_all(connections[c], 'see you later!'.encode())
+                complete_grid_off(c, logg.client_handle)
+                break
             elif string and d.split(":")[0] == "auth":
                 _, username, password,app = d.split(":")
                 if username == '':
-                    send_all(cs, "guest-declined-no-username".encode(),enc=connections[c].key)
+                    send_all(connections[c], "guest-declined-no-username".encode(),enc=connections[c].key)
                     break
                 accept,guest=action.auth(connections[c],username,str(password),app,get_allow_guest(app))
                 if accept and not guest:
@@ -202,25 +206,25 @@ def client_handle(cs,c):
                     connections[c].app=app
                     connections[c].auth=True
                     connections[c].guest=False
-                    send_all(cs, "auth-accepted".encode(),enc=connections[c].key)
+                    send_all(connections[c], "auth-accepted".encode(),enc=connections[c].key)
                     console.append([f"User {username} logged on", app])
                 elif accept and guest:
                     no=True
                     for con in connections:
                         if con.username==username:
-                            send_all(cs, "guest-declined".encode(),enc=connections[c].key)
+                            send_all(connections[c], "guest-declined".encode(),enc=connections[c].key)
                             no=False
                             break
                     if no:
                         connections[c].username = username
                         connections[c].app = app
                         connections[c].auth = True
-                        send_all(cs, "guest-accepted".encode(),enc=connections[c].key)
+                        send_all(connections[c], "guest-accepted".encode(),enc=connections[c].key)
                         console.append([f"Guest {username} hopped in", app])
                 elif guest and not accept:
-                    send_all(cs, "guest-declined".encode(),enc=connections[c].key)
+                    send_all(connections[c], "guest-declined".encode(),enc=connections[c].key)
                 else:
-                    send_all(cs, "auth-declined".encode(),enc=connections[c].key)
+                    send_all(connections[c], "auth-declined".encode(),enc=connections[c].key)
             else:
                 if connections[c].auth:
                     if connections[c].app in app_handle.keys():
@@ -229,9 +233,9 @@ def client_handle(cs,c):
                         connections[c].lock = False
                 elif d!="" and connections[c].thread:
                     print("message: "+d)
-                    send_all(cs, "request-declined".encode(),enc=connections[c].key)
+                    send_all(connections[c], "request-declined".encode(),enc=connections[c].key)
         except Exception:
-            if is_socket_closed(cs):
+            if is_socket_closed(connections[c].socket):
                 break
             else:
                 connections[c].lock = False
@@ -239,7 +243,7 @@ def client_handle(cs,c):
                 traceback.print_exc()
             break
 
-    cs.close()
+    connections[c].socket.close()
 
 def read():
     global die

@@ -45,13 +45,13 @@ def calf(name, reason='No reason provided for the cause'):
         else:
             f(reason)
 
-def disconnect_socket(s):
+def disconnect_socket(client):
     try:
-        send_all(s, 'bye'.encode())
-        recv_all(s)
+        send_all(client, 'bye'.encode())
+        recv_all(client)
     except:
         pass
-    s.close()
+    client.socket.close()
 class CLI:
     def __init__(self, id, s):
         self.id = id
@@ -75,7 +75,7 @@ class Client:
         else: calf('heartbeat_error', "The server didn't respond with the same id.")
         return id
     def disconnect(self):
-        disconnect_socket(self.socket)
+        disconnect_socket(self)
         calf('disconnect', "User called disconnect.")
     def send(self, message):
         if not isinstance(message, str):

@@ -24,6 +24,7 @@ def datemaker():
     date = datetime.datetime.now()
     return f'{date.day}-{date.month}-{date.year} {int(date.hour)}.{int(date.minute)}.{int(date.second)}'
 colors = {
+    'OK':Fore.LIGHTBLUE_EX,
     'INFO':Fore.GREEN,
     'WARNING':Fore.YELLOW,
     'ERROR':Fore.LIGHTRED_EX,
@@ -117,10 +118,13 @@ ERROR = "ERROR"
 FATAL = "FATAL"
 WARNING = "WARNING"
 INFO = "INFO"
+OK = "OK"
 
 # Loggers
 def server(i, s=INFO):
     log('server', i, s)
+def client_handle(i, s=OK):
+    log('client_handle', i, s)
 def connection_acceptor(i, s=INFO):
     log('connection', i, s)
 def reader(i, s=WARNING):
