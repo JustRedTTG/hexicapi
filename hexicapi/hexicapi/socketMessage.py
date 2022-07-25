@@ -83,7 +83,7 @@ def send_all(client, data, skip=False, enc=None):
         the_socket = client.socket
         client_id = client.id
     menc = enc or enc_public
-    if sock_msg_debug: old_data = data
+    if sock_msg_debug or sock_msg_debug_minimal: old_data = data
     if sock_msg_debug: print(f"SEND sending data: >{data}< ENCRYPTING...")
     if menc and not skip:
         try:
