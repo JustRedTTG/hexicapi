@@ -13,6 +13,7 @@ logg = None
 ltar = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 identifier=0
 BUFFER_SIZE = 1024
+FILE_SERVING_SIZE = 2048
 ip="localhost"
 port=81
     #webport=80
@@ -51,9 +52,10 @@ class Iden:
         except:
             try: send_all(self.socket, message.encode(),enc=self.key)
             except: send_all(self.socket, message,enc=self.key)
-    def receive(self, packet_size = BUFFER_SIZE):
+    def receive(self, packet_size = BUFFER_SIZE, skip_str=False):
         try: m = recv_all(self.socket, packet_size,enc=private_key)
         except: return False
+        if skip_str: return m
         try: return m.decode("utf-8")
         except: return m
     def send_objects(self, *objs):
@@ -63,6 +65,24 @@ class Iden:
     def datasync(self):
         if self.guest: return
         action.manage_sync(self)
+    def send_large(self, data):
+        self.send(str(len(data)))
+        self.receive()
+        if len(data) <= FILE_SERVING_SIZE:
+            self.send(data)
+            self.receive()
+        for i in range(0, len(data), FILE_SERVING_SIZE):
+            self.send(data[i:i+FILE_SERVING_SIZE])
+            self.receive()
+    def receive_large(self):
+        length = int(self.receive())
+        self.send('ok')
+        data = b''
+        while len(data) < length:
+            data += self.receive(skip_str=True,BUFFER_SIZE=length)
+            self.send('ok')
+        return data
+
 # Make ID for client
 def makeID(cs):
     global identifier,ltar,free
@@ -148,8 +168,7 @@ app_handle={'registration':register_handle}
 def client_handle(cs,c):
     send_all(cs, f"{connections[c].id}\r\n{public_key.decode('utf-8')}".encode('utf-8'), skip=True)
     connections[c].key = serialization.load_pem_public_key(
-        recv_all(cs, skip=True),
-        backend=default_backend()
+        recv_all(cs, skip=True)
     )
     send_all(cs, b'ok', enc=connections[c].key)
     while connections[c].thread and not die:

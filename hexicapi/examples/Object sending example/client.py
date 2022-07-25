@@ -1,6 +1,8 @@
 import hexicapi.client as client
 from random import randint
 
+client.sock_msg_debug = True
+
 # Below is a demonstration of all the different call functions
 @client.on_calf
 def connecting(reason): print(f'Connecting: {reason}')
