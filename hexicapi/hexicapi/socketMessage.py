@@ -8,9 +8,14 @@ record = []
 enc_private = None
 enc_public = None
 sock_msg_debug = False
+sock_msg_debug_minimal = False
 def enable_sock_debug():
-    global sock_msg_debug
+    global sock_msg_debug, sock_msg_debug_minimal
     sock_msg_debug = True
+    sock_msg_debug_minimal = True
+def enable_sock_debug_minimal():
+    global sock_msg_debug_minimal
+    sock_msg_debug_minimal = True
 def rm_record(cid):
     for item in record:
         if item[0] == cid:
@@ -66,7 +71,7 @@ def recv_all(client, packet_size=1024, skip=False, enc=None):
                 label=None
         ))
         except: pass
-    if sock_msg_debug: print(f"{the_socket.getsockname()[0]} : RECV : >{data}<")
+    if sock_msg_debug_minimal: print(f"{the_socket.getsockname()[0]} : RECV : >{data}<")
     return data
 class data_not_bytes(Exception):
     pass
@@ -103,9 +108,8 @@ def send_all(client, data, skip=False, enc=None):
     rm_record(client_id)
     the_socket.send(length.encode('utf-8'))
     the_socket.send(data)
-    if sock_msg_debug:
-        print(f"SEND data size: {length}:{len(length)}")
-        print(f"{the_socket.getsockname()[0]} : SEND : >{old_data}<")
+    if sock_msg_debug: print(f"SEND data size: {length}:{len(length)}")
+    if sock_msg_debug_minimal: print(f"{the_socket.getsockname()[0]} : SEND : >{old_data}<")
 
 def set_encryption_key(key):
     global enc_public
