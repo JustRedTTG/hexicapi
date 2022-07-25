@@ -65,7 +65,7 @@ def recv_all(client, packet_size=1024, skip=False, enc=None):
                 algorithm=hashes.SHA256(),
                 label=None
         ))
-        except Exception as e: print(traceback.format_exc())
+        except: pass
     if sock_msg_debug: print(f"{the_socket.getsockname()[0]} : RECV : >{data}<")
     return data
 class data_not_bytes(Exception):
@@ -88,7 +88,7 @@ def send_all(client, data, skip=False, enc=None):
                 algorithm=hashes.SHA256(),
                 label=None
         ))
-        except Exception as e: print(traceback.format_exc())
+        except: pass
     if sock_msg_debug: print(f"SEND on wait. waiting:{working} record:{record}")
     while client_id in working: pass
     if sock_msg_debug: print("SEND finished waiting.")
