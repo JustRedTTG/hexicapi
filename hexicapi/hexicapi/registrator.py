@@ -104,4 +104,3 @@ class action:
 
 
 
-if not os.path.exists('users'): os.mkdir('users')

@@ -5,8 +5,7 @@ from random import randint
 from hexicapi.save import save, load
 from hexicapi.encryption import *
 from hexicapi.registrator import *
-private_key, public_key = generate_keys()
-set_decryption_key(private_key)
+private_key, public_key = None, None
 silent=False
 log = True
 logg = None
@@ -27,7 +26,7 @@ s = None
 #
 allowGuest={'registration':True}
 apps=[]
-app_disconnect={}
+app_disconnect_handle={}
 #
 console=[["Welcome To The Server!","all"]]
 
@@ -128,7 +127,7 @@ def discon(c):
         try:
             if connections[c].socket.getsockname() in working: rm_record(connections[c].socket.getsockname())
         except: pass
-def complete_grid_off(c, logger, ret=True):
+def complete_grid_off(c, logger):
     discon(c)
     connections[c].thread = False
     console.append([connections[c].username + " disconnected", connections[c].app])
@@ -138,6 +137,13 @@ def complete_grid_off(c, logger, ret=True):
     connections[c].data = None
     connections[c].app = None
     free.append(c)
+    ret = True
+    try:
+        ret = app_disconnect_handle[connections[c].app](connections[c])
+        if ret == None:
+            ret = True
+    except:
+        pass
     if ret:
         if log:
             logger(f"Client {connections[c].id} disconnected...")
@@ -146,14 +152,7 @@ def server():
         for c in range(len(connections)):
             if (not connections[c].lock) and connections[c].thread and connections[c].die:
                 if is_socket_closed(connections[c].socket) or time.time()-connections[c].calldelta > timeout:
-                    ret = True
-                    try:
-                        ret = app_disconnect[connections[c].app](connections[c])
-                        if ret == None:
-                            ret = True
-                    except:
-                        pass
-                    complete_grid_off(c, logg.server, ret)
+                    complete_grid_off(c, logg.server)
         #print(connections)
         while len(console)>50:
             del console[0]
@@ -315,7 +314,9 @@ stop - Stops the server""")
         print("~DONE~")
 
 def run(silentQ=False, logQ=True, enable_no_die=False):
-    global ipbans, logg, silent, log, s
+    global ipbans, logg, silent, log, s, private_key, public_key
+    private_key, public_key = generate_keys()
+    set_decryption_key(private_key)
     silent = silentQ
     log = logQ
     if log:
@@ -432,7 +433,9 @@ def run(silentQ=False, logQ=True, enable_no_die=False):
 
 
 def app(f): app_handle[f.__name__] = f
-def app_disconnect(f): app_disconnect[f.__name__] = f
+def app_disconnect(f): app_disconnect_handle[f.__name__] = f
 
 class user:
     pass
+
+if not os.path.exists('users'): os.mkdir('users')
