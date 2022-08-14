@@ -128,6 +128,16 @@ def discon(c):
             if connections[c].socket.getsockname() in working: rm_record(connections[c].socket.getsockname())
         except: pass
 def complete_grid_off(c, logger):
+    ret = True
+    try:
+        if connections[c].app in app_disconnect_handle:
+            ret = app_disconnect_handle[connections[c].app](connections[c])
+            if ret == None:ret = True
+    except Exception:
+        if log:
+            logger(f"Client disconnect handle, failed.", logg.ERROR)
+            traceback.print_exc()
+        ret = False
     discon(c)
     connections[c].thread = False
     console.append([connections[c].username + " disconnected", connections[c].app])
@@ -137,13 +147,6 @@ def complete_grid_off(c, logger):
     connections[c].data = None
     connections[c].app = None
     free.append(c)
-    ret = True
-    try:
-        ret = app_disconnect_handle[connections[c].app](connections[c])
-        if ret == None:
-            ret = True
-    except:
-        pass
     if ret:
         if log:
             logger(f"Client {connections[c].id} disconnected...")
@@ -310,7 +313,7 @@ stop - Stops the server""")
         elif inp=='stop':
             if log: logg.reader("Stop has been init")
             stop()
-        else: return
+        else: continue
         print("~DONE~")
 
 def run(silentQ=False, logQ=True, enable_no_die=False):
