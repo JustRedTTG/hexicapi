@@ -92,7 +92,7 @@ class Iden:
         return data
 
     def custom_id(self, id):
-        custom_id(self.username, id, True)
+        return custom_id(self.username, id, True)
 
 # Make ID for client
 def makeID(cs):
