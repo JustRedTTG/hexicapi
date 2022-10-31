@@ -166,7 +166,6 @@ class Client:
             self.send('ok')
         return data
 
-        
 
 def run(app,username,password='',autoauth=True, silent=False):
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
