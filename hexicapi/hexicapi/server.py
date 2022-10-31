@@ -94,6 +94,12 @@ class Iden:
     def custom_id(self, id):
         custom_id(self.username, id, True)
 
+    def elevate_privilege(self):
+        return elevate_privilege(self.username)
+
+    def diminish_privilege(self):
+        return diminish_privilege(self.username)
+
 # Make ID for client
 def makeID(cs):
     global identifier,ltar,free
