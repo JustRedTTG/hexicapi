@@ -232,6 +232,8 @@ def client_handle(cs,c):
                     if connections[c].app in app_handle.keys():
                         connections[c].lock = True
                         app_handle[connections[c].app](connections[c],d)
+                        # Heartbeat the client after app handle, so it doesn't die
+                        connections[c].calldelta = time.time()
                         connections[c].lock = False
                 elif d!="" and connections[c].thread:
                     print("message: "+d)

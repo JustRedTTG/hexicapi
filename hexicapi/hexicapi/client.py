@@ -1,4 +1,7 @@
 import traceback, pickle
+
+import colorama
+
 from hexicapi.socketMessage import *
 from hexicapi.encryption import *
 from hexicapi.save import save, load
@@ -33,6 +36,28 @@ auth_states = {
     'guest-accepted': "Server accepted the guest username provided",
     'auth-canceled': "Server cancelled authentication.",
 }
+
+
+def create_lambda_on_calf(text: str, enable_exit: bool = False):
+    if enable_exit:
+        return lambda reason: [print(x) if x else exit() for x in [text.format(reason=reason, color_reset=colorama.Fore.RESET), None]]
+    else:
+        return lambda reason: print(text.format(reason=reason))
+
+
+def basic_on_calf(enable_color = True):
+    global functions
+    functions['connecting'] = create_lambda_on_calf(f'{colorama.Fore.LIGHTYELLOW_EX if enable_color else ""}Connecting: {{reason}}{colorama.Fore.RESET if enable_color else ""}')
+    functions['connection_fail'] = create_lambda_on_calf(f'{colorama.Fore.LIGHTRED_EX if enable_color else ""}Connection error: {{reason}}{colorama.Fore.RESET if enable_color else ""}', True)
+    functions['connection_success'] = create_lambda_on_calf(f'{colorama.Fore.LIGHTGREEN_EX if enable_color else ""}Connection successful: {{reason}}{colorama.Fore.RESET if enable_color else ""}')
+    functions['authenticating'] = create_lambda_on_calf(f'{colorama.Fore.LIGHTYELLOW_EX if enable_color else ""}Authenticating: {{reason}}{colorama.Fore.RESET if enable_color else ""}')
+    functions['authentication_fail'] = create_lambda_on_calf(f'{colorama.Fore.LIGHTRED_EX if enable_color else ""}Authentication error: {{reason}}{colorama.Fore.RESET if enable_color else ""}', True)
+    functions['authentication_success'] = create_lambda_on_calf(f'{colorama.Fore.LIGHTGREEN_EX if enable_color else ""}Authentication successful: {{reason}}{colorama.Fore.RESET if enable_color else ""}')
+    functions['handshake'] = create_lambda_on_calf(f'{colorama.Fore.LIGHTGREEN_EX if enable_color else ""}Handshake: {{reason}}{colorama.Fore.RESET if enable_color else ""}')
+    functions['disconnect'] = create_lambda_on_calf(f'{colorama.Fore.LIGHTCYAN_EX if enable_color else ""}Closing due to disconnect... {{reason}}{colorama.Fore.RESET if enable_color else ""}', True)
+    functions['heartbeat'] = create_lambda_on_calf(f'{colorama.Fore.LIGHTCYAN_EX if enable_color else ""}Heartbeat: {{reason}}{colorama.Fore.RESET if enable_color else ""}')
+    functions['heartbeat_error'] = create_lambda_on_calf(f'{colorama.Fore.LIGHTRED_EX if enable_color else ""}Heartbeat error: {{reason}}{colorama.Fore.RESET if enable_color else ""}', True)
+
 
 def on_calf(f):
     functions[f.__name__] = f
@@ -108,7 +133,7 @@ class Client:
         calf('authenticating', "Called auth.")
         auth_result = 'auth-declined'
         try:
-            send_all(self, f'auth: {username or self.username}:{password}:{app or self.app}'.encode(), enc=self.enc_public)
+            send_all(self, f'auth:{username or self.username}:{password}:{app or self.app}'.encode(), enc=self.enc_public)
             auth_result = recv_all(self, BUFFER_SIZE, enc=self.enc_private).decode('utf-8')
         except: calf('disconnect', auth_states['auth-canceled'])
         if auth_result == 'auth-declined' or auth_result == 'guest-declined': calf('authentication_fail', auth_states[auth_result])
