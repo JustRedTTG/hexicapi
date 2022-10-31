@@ -91,12 +91,12 @@ class Client:
         self.enc_public = enc_public
         self.username = username
         self.app = app
-    def heartbeat(self):
+    def heartbeat(self, force_okay: bool = False):
         try:
             send_all(self, "clientGetID".encode("utf-8"), enc=self.enc_public)
             id = recv_all(self, BUFFER_SIZE, enc=self.enc_private).decode("utf-8")
         except: id=''
-        if id == self.id: calf('heartbeat', "The server responded.")
+        if id == self.id or force_okay: calf('heartbeat', "The server responded.")
         else: calf('heartbeat_error', "The server didn't respond with the same id.")
         return id
     def disconnect(self):
@@ -138,6 +138,8 @@ class Client:
         except: calf('disconnect', auth_states['auth-canceled'])
         if auth_result == 'auth-declined' or auth_result == 'guest-declined': calf('authentication_fail', auth_states[auth_result])
         else: calf('authentication_success', auth_states[auth_result])
+        if auth_result == 'auth-accepted':
+            self.id = self.heartbeat(True)
     def send_large(self, data):
         self.send(str(len(data)))
         self.receive()

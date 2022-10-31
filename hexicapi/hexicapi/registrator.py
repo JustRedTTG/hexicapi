@@ -96,6 +96,11 @@ class action:
                         data = save(None, {}) # Make a crude empty save
                         with open(os.path.join('users', username_hash, 'savedata'), 'wb') as f:
                             f.write(encrypt(data, password)) # Write down the encrypted data
+                    if os.path.exists(os.path.join('users', username_hash, 'custom_id')):
+                        with open(os.path.join('users', username_hash, 'custom_id'), 'rb') as f:
+                            data = f.read() # Read the data
+                            client.id = client.id.split("'")[0]+"'"+data.decode()
+                    client.id += "'"+username_hash[-5:]
                     return True, False # Return Accepted login!
                 else: return False, False # Decline guest, because they impersonate a user
         else:
@@ -119,3 +124,16 @@ def forced_register(username: str, password: str, force_delete: bool = False):
             f.write(encrypt(data, password))
     except:
         os.remove(os.path.join('users', username_hash, 'savedata'))
+
+def custom_id(username: str, id: str, force_delete: bool = False) -> bool:
+    username_hash = hash256(username.encode('utf-8')).hexdigest()
+    if not os.path.exists(os.path.join('users', username_hash)): return False
+    if os.path.exists(os.path.join('users', username_hash, 'custom_id')) and not force_delete: return False
+
+    with open(os.path.join('users', username_hash, 'custom_id'), 'wb+') as f:
+        f.seek(0)
+        f.write(id.encode())
+
+
+    return True
+
