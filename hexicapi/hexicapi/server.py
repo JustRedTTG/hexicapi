@@ -231,7 +231,10 @@ def client_handle(cs,c):
                 if connections[c].auth:
                     if connections[c].app in app_handle.keys():
                         connections[c].lock = True
-                        app_handle[connections[c].app](connections[c],d)
+                        try:
+                            app_handle[connections[c].app](connections[c],d)
+                        except:
+                            traceback.print_exc()
                         # Heartbeat the client after app handle, so it doesn't die
                         connections[c].calldelta = time.time()
                         connections[c].lock = False
