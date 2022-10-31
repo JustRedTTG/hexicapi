@@ -200,7 +200,7 @@ def client_handle(cs,c):
                 complete_grid_off(c, logg.client_handle)
                 break
             elif string and d.split(":")[0] == "auth":
-                _, username, password,app = d.split(":")
+                _, username, password, app = d.split(":")
                 if username == '':
                     send_all(connections[c], "guest-declined-no-username".encode(),enc=connections[c].key)
                     break
