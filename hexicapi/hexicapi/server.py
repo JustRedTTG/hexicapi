@@ -369,6 +369,7 @@ def run(silentQ=False, logQ=True, enable_no_die=False):
     # BIND SOCKET TO SERVICE
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    if not os.path.exists('users'): os.mkdir('users')
     try:
         s.bind((ip, port))
         print("SERVER running")
@@ -475,5 +476,3 @@ def app_disconnect(f): app_disconnect_handle[f.__name__] = f
 
 class user:
     pass
-
-if not os.path.exists('users'): os.mkdir('users')
