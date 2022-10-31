@@ -45,6 +45,8 @@ class Iden:
         self.die = True
         self.room = None
         self.lock = False
+        self.admin = False
+
     def send(self, message):
         try:
             _ = message.decode()
@@ -52,19 +54,24 @@ class Iden:
         except:
             try: send_all(self, message.encode(),enc=self.key)
             except: send_all(self, message,enc=self.key)
+
     def receive(self, packet_size = BUFFER_SIZE, skip_str=False):
         try: m = recv_all(self, packet_size,enc=private_key)
         except: return False
         if skip_str: return m
         try: return m.decode("utf-8")
         except: return m
+
     def send_objects(self, *objs):
         self.send(save(None, *objs))
+
     def receive_objects(self, packet_size = BUFFER_SIZE):
         return load(self.receive(packet_size))
+
     def datasync(self):
         if self.guest: return
         action.manage_sync(self)
+
     def send_large(self, data):
         self.send(str(len(data)))
         self.receive()
@@ -74,6 +81,7 @@ class Iden:
         for i in range(0, len(data), FILE_SERVING_SIZE):
             self.send(data[i:i+FILE_SERVING_SIZE])
             self.receive()
+
     def receive_large(self):
         length = int(self.receive())
         self.send('ok')
@@ -82,6 +90,9 @@ class Iden:
             data += self.receive(skip_str=True, packet_size=length)
             self.send('ok')
         return data
+
+    def custom_id(self, id):
+        custom_id(self.username, id, True)
 
 # Make ID for client
 def makeID(cs):
