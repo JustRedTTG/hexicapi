@@ -57,10 +57,6 @@ def register_handle(Client, message):
         except: os.remove(os.path.join('users', username_hash, 'savedata'))
     else: Client.send("not_ok")
 
-
-
-
-
 class action:
     def manage_sync(client):
         username_hash = hash256(client.username.encode('utf-8')).hexdigest()
@@ -101,6 +97,7 @@ class action:
                             data = f.read() # Read the data
                             client.id = client.id.split("'")[0]+"'"+data.decode()
                     client.id += "'"+username_hash[-5:]
+                    client.admin = os.path.exists(os.path.join('users', username_hash, 'admin'))
                     return True, False # Return Accepted login!
                 else: return False, False # Decline guest, because they impersonate a user
         else:
@@ -136,4 +133,16 @@ def custom_id(username: str, id: str, force_delete: bool = False) -> bool:
 
 
     return True
+
+def elevate_privilege(username: str) -> bool:
+    username_hash = hash256(username.encode('utf-8')).hexdigest()
+    if not os.path.exists(os.path.join('users', username_hash)): return False
+    if os.path.exists(os.path.join('users', username_hash, 'admin')): return False
+
+    open(os.path.join('users', username_hash, 'admin'), 'a+').close()
+def diminish_privilege(username: str) -> bool:
+    username_hash = hash256(username.encode('utf-8')).hexdigest()
+    if not os.path.exists(os.path.join('users', username_hash, 'admin')): return False
+
+    os.remove(os.path.join('users', username_hash, 'admin'))
 
