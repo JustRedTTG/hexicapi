@@ -129,14 +129,15 @@ def discon(c):
         except: pass
 def complete_grid_off(c, logger):
     ret = True
+    if c > len(connections)-1: return False
+    if not connections[c].thread: return False
     try:
         if connections[c].app in app_disconnect_handle:
             ret = app_disconnect_handle[connections[c].app](connections[c])
-            if ret == None:ret = True
+            if ret is None: ret = True
     except Exception:
         if log:
             logger(f"Client disconnect handle, failed.", logg.ERROR)
-            traceback.print_exc()
         ret = False
     discon(c)
     connections[c].thread = False
@@ -150,6 +151,7 @@ def complete_grid_off(c, logger):
     if ret:
         if log:
             logger(f"Client {connections[c].id} disconnected...")
+    return ret
 def server():
     while not die:
         for c in range(len(connections)):
@@ -260,7 +262,7 @@ def read():
         except:
             if log: logg.reader("Detected an interruption.")
             stop()
-        if inp=="ipbans":
+        if inp == "ipbans":
             for ip in ipbans:
                 if ip[1]>=10:
                     t=time.time()-ip[2]
@@ -275,7 +277,7 @@ def read():
                         t=t/24
                         pre="days"
                     print(ip[0],t,pre)
-        elif "unban " in inp:
+        elif inp.startswith('unban '):
             i=0
             while i<len(ipbans):
                 if ipbans[i][0]==inp.split(" ")[1]:
@@ -283,33 +285,30 @@ def read():
                     del ipbans[i]
                 i+=1
             save("ipbans",*ipbans)
-        elif "ban " in inp:
+        elif inp.startswith('ban '):
             ipbans.append([inp.split(" ")[1], 100, time.time()])
             print("banned", inp.split(" ")[1])
             save("ipbans", *ipbans)
-        elif inp=="kickall":
+        elif inp.startswith('kick '):
+            c = inp.split(" ")[1].split("'")[0]
+            if not complete_grid_off(int(c), logg.reader):
+                logg.reader("Couldn't kick the client")
+        elif inp == "kickall":
             c=1
             while c<len(connections):
                 if connections[c].thread:
-                    connections[c].thread=False
-                    console.append([connections[c].username + " disconnected", connections[c].app])
-                    connections[c].username = "Guest"
-                    connections[c].auth = False
-                    connections[c].app = None
-                    free.append(c)
-                    if log:
-                        logg.reader(f"Client {connections[c].id} disconnected...")
+                    complete_grid_off(c, logg.reader)
                 c+=1
-        elif inp=="users":
+        elif inp == "users":
             for us in connections:
                 if us.thread:
                     print("id:",us.id,",username:",us.username,",Is guest?",us.guest,",auth:",us.auth,",app",us.app,",die?",us.die,",room",us.room)
-        elif inp=="freed":
-            print(*free)
+        elif inp == "freed": print(*free, sep=', ')
         elif inp=="help":
             print("""ipbans - Lists all IP bans.
 unban <ip> - Removes ban for IP.
 ban <ip> - Bans the IP
+kick <id> - Disconnect a client.
 kickall - Disconnects all clients.
 users - Lists all connections.
 freed - Lists all free connection slots.
