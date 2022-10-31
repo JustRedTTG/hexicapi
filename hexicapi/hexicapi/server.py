@@ -310,6 +310,18 @@ def read():
             c = inp.split(" ")[1].split("'")[0]
             if not complete_grid_off(int(c), logg.reader):
                 logg.reader("Couldn't kick the client")
+        elif inp.startswith('op '):
+            username = inp.removeprefix('op ')
+            if elevate_privilege(username):
+                logg.reader(f'Elevated privileges for {username}')
+            else:
+                logg.reader(f'{username} already has elevated privileges', logg.ERROR)
+        elif inp.startswith('unop '):
+            username = inp.removeprefix('unop ')
+            if diminish_privilege(username):
+                logg.reader(f'Diminished privileges for {username}')
+            else:
+                logg.reader(f'{username} already has diminished privileges', logg.ERROR)
         elif inp == "kickall":
             c=1
             while c<len(connections):
@@ -325,7 +337,9 @@ def read():
             print("""ipbans - Lists all IP bans.
 unban <ip> - Removes ban for IP.
 ban <ip> - Bans the IP
-kick <id> - Disconnect a client.
+kick <id> - Disconnect a client, use the number.
+op <username> - Give Admin to account
+unop <username> - Remove Admin from account
 kickall - Disconnects all clients.
 users - Lists all connections.
 freed - Lists all free connection slots.

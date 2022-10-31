@@ -140,9 +140,11 @@ def elevate_privilege(username: str) -> bool:
     if os.path.exists(os.path.join('users', username_hash, 'admin')): return False
 
     open(os.path.join('users', username_hash, 'admin'), 'a+').close()
+    return True
 def diminish_privilege(username: str) -> bool:
     username_hash = hash256(username.encode('utf-8')).hexdigest()
     if not os.path.exists(os.path.join('users', username_hash, 'admin')): return False
 
     os.remove(os.path.join('users', username_hash, 'admin'))
+    return True
 
