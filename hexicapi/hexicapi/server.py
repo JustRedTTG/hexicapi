@@ -1,6 +1,6 @@
 import threading,traceback
 from hexicapi.socketMessage import *
-from hexicapi.verinfo import *
+from hexicapi.verinfo import __version__
 from random import randint
 from hexicapi.save import save, load
 from hexicapi.encryption import *
@@ -173,7 +173,7 @@ def stop():
 app_handle={'registration':register_handle}
 # Handle Clients
 def client_handle(cs,c):
-    send_all(cs, f"{connections[c].id}\r\n{public_key.decode('utf-8')}".encode('utf-8'), skip=True)
+    send_all(cs, f"{connections[c].id}\r\n'{__version__}'\r\n{public_key.decode('utf-8')}".encode('utf-8'), skip=True)
     connections[c].key = serialization.load_pem_public_key(
         recv_all(cs, skip=True)
     )

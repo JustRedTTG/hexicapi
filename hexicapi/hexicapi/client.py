@@ -5,7 +5,7 @@ import colorama
 from hexicapi.socketMessage import *
 from hexicapi.encryption import *
 from hexicapi.save import save, load
-from hexicapi.verinfo import *
+from hexicapi.verinfo import __version__
 BUFFER_SIZE = 1024
 FILE_SERVING_SIZE = 32768
 
@@ -15,6 +15,7 @@ debug = False
 
 functions={ # print(list(functions)) - > shows all available functions
     'connecting':None,
+    'connection_warning':None,
     'connection_fail':None,
     'connection_success':None,
     'authenticating':None,
@@ -27,6 +28,9 @@ functions={ # print(list(functions)) - > shows all available functions
     'registering':None,
     'registering_taken':None,
     'registering_complete':None,
+    'version_warning':None,
+    'version_info':None,
+    'version_error':None,
 }
 auth_states = {
     'auth-declined': "Username or Password didn't get accepted",
@@ -48,6 +52,7 @@ def create_lambda_on_calf(text: str, enable_exit: bool = False):
 def basic_on_calf(enable_color = True):
     global functions
     functions['connecting'] = create_lambda_on_calf(f'{colorama.Fore.LIGHTYELLOW_EX if enable_color else ""}Connecting: {{reason}}{colorama.Fore.RESET if enable_color else ""}')
+    functions['connection_warning'] = create_lambda_on_calf(f'{colorama.Fore.LIGHTRED_EX if enable_color else ""}Connection error: {{reason}}{colorama.Fore.RESET if enable_color else ""}')
     functions['connection_fail'] = create_lambda_on_calf(f'{colorama.Fore.LIGHTRED_EX if enable_color else ""}Connection error: {{reason}}{colorama.Fore.RESET if enable_color else ""}', True)
     functions['connection_success'] = create_lambda_on_calf(f'{colorama.Fore.LIGHTGREEN_EX if enable_color else ""}Connection successful: {{reason}}{colorama.Fore.RESET if enable_color else ""}')
     functions['authenticating'] = create_lambda_on_calf(f'{colorama.Fore.LIGHTYELLOW_EX if enable_color else ""}Authenticating: {{reason}}{colorama.Fore.RESET if enable_color else ""}')
@@ -57,6 +62,9 @@ def basic_on_calf(enable_color = True):
     functions['disconnect'] = create_lambda_on_calf(f'{colorama.Fore.LIGHTCYAN_EX if enable_color else ""}Closing due to disconnect... {{reason}}{colorama.Fore.RESET if enable_color else ""}', True)
     functions['heartbeat'] = create_lambda_on_calf(f'{colorama.Fore.LIGHTCYAN_EX if enable_color else ""}Heartbeat: {{reason}}{colorama.Fore.RESET if enable_color else ""}')
     functions['heartbeat_error'] = create_lambda_on_calf(f'{colorama.Fore.LIGHTRED_EX if enable_color else ""}Heartbeat error: {{reason}}{colorama.Fore.RESET if enable_color else ""}', True)
+    functions['version_warning'] = create_lambda_on_calf(f'{colorama.Fore.YELLOW if enable_color else ""}Version warning: {{reason}}{colorama.Fore.RESET if enable_color else ""}')
+    functions['version_info'] = create_lambda_on_calf(f'{colorama.Fore.LIGHTBLACK_EX if enable_color else ""}Version information: {{reason}}{colorama.Fore.RESET if enable_color else ""}')
+    functions['version_error'] = create_lambda_on_calf(f'{colorama.Fore.LIGHTRED_EX if enable_color else ""}Version error: {{reason}}{colorama.Fore.RESET if enable_color else ""}', True)
 
 
 def on_calf(f):
@@ -170,9 +178,20 @@ def run(app,username,password='',autoauth=True, silent=False):
     send_all(s, "clientGetID".encode("utf-8"))
     id_enc = recv_all(s, BUFFER_SIZE, skip=True).decode('utf-8')
     try:
-        id, enc_public = id_enc.split('\r\n')
+        data = id_enc.split('\r\n')
+        id = data[0]
+        version = data[1].split("'")[1]
+        enc_public = data[2]
+        if version != __version__:
+            calf('version_warning', f"server: {version} client: {__version__}")
+        elif not silent:
+            calf('version_info', version)
     except:
-        calf('connection_fail', "probably... BANNED")
+        if not version == __version__:
+            calf('connection_warning', "probably... banned or version error")
+            calf('version_error', f"server: {version} client: {__version__}")
+        else:
+            calf('connection_fail', "probably... banned or internal error")
         return None
 
     enc_public = enc_public.encode('utf-8')
