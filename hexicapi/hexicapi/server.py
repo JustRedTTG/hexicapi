@@ -6,29 +6,30 @@ from hexicapi.save import save, load
 from hexicapi.encryption import *
 from hexicapi.registrator import *
 private_key, public_key = None, None
-silent=False
+silent = False
 log = True
 logg = None
 ltar = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
-identifier=0
+identifier = 0
 BUFFER_SIZE = 1024
 FILE_SERVING_SIZE = 32768
-ip="localhost"
-port=81
+ip = "localhost"
+port = 81
     #webport=80
     #webpage=web.mainPage
 #variables
-ipbans=[]
+ipbans = []
 connections = []
 rooms = []
 free = []
 s = None
 #
-allowGuest={'registration':True}
-apps=[]
+allowGuest = {'registration':True}
+apps = []
+shadows = []
 app_disconnect_handle={}
 #
-console=[["Welcome To The Server!","all"]]
+console = [["Welcome To The Server!","all"]]
 
 class Iden:
     def __init__(self, id, cs):
@@ -46,6 +47,7 @@ class Iden:
         self.room = None
         self.lock = False
         self.admin = False
+        self.shadow = False
 
     def send(self, message):
         try:
@@ -100,9 +102,79 @@ class Iden:
     def diminish_privilege(self):
         return diminish_privilege(self.username)
 
+class NdenClient:
+    app = 'shadow'
+    username = f'shadow{randint(111,999)}'
+    active = True
+    received = None
+    received_objects = None
+    sent = None
+    sent_objects = None
+    id = None
+    c = None
+    auth = False
+
+    def send(self, message):
+        self.sent = message
+
+    def receive(self):
+        while not self.received: pass
+        temp = self.received
+        self.received = None
+        return temp
+
+    def send_objects(self, *objs):
+        self.sent_objects = objs
+
+    def receive_objects(self):
+        while not self.received_objects: pass
+        temp = self.received_objects
+        self.received_objects = None
+        return temp
+
+    def disconnect(self):
+        complete_grid_off(self.c, logg.shadow)
+
+    def heartbeat(self):
+        return self.id
+
+    def auth(self, app=None, username=None, password=''):
+        if password:
+            logg.shadow('Account authentication is not possible for a shadow client', logg.WARNING)
+        if username:
+            self.username = username
+        self.app = app
+        self.auth = True
+
+
+class Nden(Iden):
+    def __init__(self, id):
+        super().__init__(id, None)
+        self.die = False
+        self.shadow = True
+        self.client = NdenClient()
+
+    def send(self, message):
+        self.client.received = message
+
+    def receive(self):
+        while not self.client.sent: pass
+        temp = self.client.sent
+        self.client.sent = None
+        return temp
+
+    def send_objects(self, message):
+        self.client.received_objects = message
+
+    def receive_objects(self):
+        while not self.client.sent_objects: pass
+        temp = self.client.sent_objects
+        self.client.sent_objects = None
+        return temp
+
 # Make ID for client
-def makeID(cs):
-    global identifier,ltar,free
+def makeID(cs=None):
+    global identifier, ltar, free
     num=None
     if len(free)>0:
         num = free[0]
@@ -117,7 +189,10 @@ def makeID(cs):
         num2=len(connections)
     else:
         num2=num
-    iden = Iden(id, cs)
+    if cs:
+        iden = Iden(id, cs)
+    else:
+        iden = Nden(id)
     if num == None:
         connections.append(iden)
     else:
@@ -131,12 +206,17 @@ def is_socket_closed(sock):
         return False
     except:
         return True
+
+
 def get_allow_guest(app):
     try:
         return allowGuest[app]
     except: return False
+
+
 die=False
 timeout = 3
+
 # Handle Updates
 def discon(c):
     if connections[c].id in working: rm_record(connections[c].id)
@@ -144,6 +224,8 @@ def discon(c):
         try:
             if connections[c].socket.getsockname() in working: rm_record(connections[c].socket.getsockname())
         except: pass
+
+
 def complete_grid_off(c, logger):
     ret = True
     if c > len(connections)-1: return False
@@ -169,6 +251,8 @@ def complete_grid_off(c, logger):
         if log:
             logger(f"Client {connections[c].id} disconnected...")
     return ret
+
+
 def server():
     while not die:
         for c in range(len(connections)):
@@ -181,13 +265,16 @@ def server():
         clean_working_record()
         time.sleep(1)
 
+
 def stop():
   global die, s
   die=True
   logg.close_log()
   s.close()
 
+
 app_handle={'registration':register_handle}
+
 # Handle Clients
 def client_handle(cs,c):
     send_all(cs, f"{connections[c].id}\r\n'{__version__}'\r\n{public_key.decode('utf-8')}".encode('utf-8'), skip=True)
@@ -271,6 +358,18 @@ def client_handle(cs,c):
 
     connections[c].socket.close()
 
+def shadow_handle(c):
+    while connections[c].client.active and not die:
+        m = connections[c].receive()
+        if not connections[c].auth:
+            connections[c].auth = True
+            connections[c].client.id = connections[c].id
+            connections[c].client.c = c
+            connections[c].username = connections[c].client.username
+
+        if connections[c].client.app in app_handle.keys():
+            app_handle[connections[c].client.app](connections[c], m)
+
 def read():
     global die
     print('==READER : type help==')
@@ -316,7 +415,7 @@ def read():
                 logg.reader(f'Elevated privileges for {username}')
             else:
                 logg.reader(f'{username} already has elevated privileges', logg.ERROR)
-        elif inp.startswith('unop '):
+        elif inp.startswith('unmap '):
             username = inp.removeprefix('unop ')
             if diminish_privilege(username):
                 logg.reader(f'Diminished privileges for {username}')
@@ -350,6 +449,7 @@ stop - Stops the server""")
             stop()
         else: continue
         print("~DONE~")
+
 
 def run(silentQ=False, logQ=True, enable_no_die=False):
     global ipbans, logg, silent, log, s, private_key, public_key
@@ -392,6 +492,18 @@ def run(silentQ=False, logQ=True, enable_no_die=False):
     readthread = threading.Thread(target=read)
     readthread.daemon = True
     readthread.start()
+    time.sleep(.05)
+    # Process shadows:
+    for shadow in shadows:
+        thread = threading.Thread(target=shadow_handle, args=(shadow[0],))
+        if log:
+            logg.connection_acceptor(f"Shadow client with ID {shadow[2]}")
+        thread.daemon = True
+        thread.start()
+        thread = threading.Thread(target=shadow[1], args=(connections[shadow[0]].client,))
+        thread.daemon = True
+        thread.start()
+
     # Accept Connections
     while not die:
         try:
@@ -472,7 +584,10 @@ def run(silentQ=False, logQ=True, enable_no_die=False):
 
 
 def app(f): app_handle[f.__name__] = f
+
+
 def app_disconnect(f): app_disconnect_handle[f.__name__] = f
 
-class user:
-    pass
+def shadow(f):
+    id, c = makeID()
+    shadows.append([c, f, id])

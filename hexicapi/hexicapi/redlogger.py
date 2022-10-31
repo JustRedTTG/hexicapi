@@ -125,6 +125,8 @@ def server(i, s=INFO):
     log('server', i, s)
 def client_handle(i, s=OK):
     log('client_handle', i, s)
+def shadow(i, s=OK):
+    log('shadow', i, s)
 def connection_acceptor(i, s=INFO):
     log('connection', i, s)
 def reader(i, s=WARNING):
