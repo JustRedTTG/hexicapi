@@ -23,6 +23,7 @@ functions={ # print(list(functions)) - > shows all available functions
     'authentication_success':None,
     'handshake':None,
     'disconnect':None,
+    'disconnect_soft':None,
     'heartbeat':None,
     'heartbeat_error':None,
     'registering':None,
@@ -60,6 +61,7 @@ def basic_on_calf(enable_color = True):
     functions['authentication_success'] = create_lambda_on_calf(f'{colorama.Fore.LIGHTGREEN_EX if enable_color else ""}Authentication successful: {{reason}}{colorama.Fore.RESET if enable_color else ""}')
     functions['handshake'] = create_lambda_on_calf(f'{colorama.Fore.LIGHTGREEN_EX if enable_color else ""}Handshake: {{reason}}{colorama.Fore.RESET if enable_color else ""}')
     functions['disconnect'] = create_lambda_on_calf(f'{colorama.Fore.LIGHTCYAN_EX if enable_color else ""}Closing due to disconnect... {{reason}}{colorama.Fore.RESET if enable_color else ""}', True)
+    functions['disconnect_soft'] = create_lambda_on_calf(f'{colorama.Fore.LIGHTCYAN_EX if enable_color else ""}Soft disconnect... {{reason}}{colorama.Fore.RESET if enable_color else ""}')
     functions['heartbeat'] = create_lambda_on_calf(f'{colorama.Fore.LIGHTCYAN_EX if enable_color else ""}Heartbeat: {{reason}}{colorama.Fore.RESET if enable_color else ""}')
     functions['heartbeat_error'] = create_lambda_on_calf(f'{colorama.Fore.LIGHTRED_EX if enable_color else ""}Heartbeat error: {{reason}}{colorama.Fore.RESET if enable_color else ""}', True)
     functions['version_warning'] = create_lambda_on_calf(f'{colorama.Fore.YELLOW if enable_color else ""}Version warning: {{reason}}{colorama.Fore.RESET if enable_color else ""}')
@@ -109,9 +111,12 @@ class Client:
         else: calf('heartbeat_error', "The server didn't respond with the same id.")
         return id
 
-    def disconnect(self):
+    def disconnect(self, softly: bool = False):
         disconnect_socket(self)
-        calf('disconnect', "User called disconnect.")
+        if softly:
+            calf('disconnect_soft', "User called soft disconnect.")
+        else:
+            calf('disconnect', "User called disconnect.")
 
     def send(self, message):
         if not isinstance(message, str):
