@@ -80,9 +80,9 @@ def calf(name, reason='No reason provided for the cause'):
         else:
             f(reason)
 
-def disconnect_socket(client):
+def disconnect_socket(client, softly: bool = False):
     try:
-        send_all(client, 'bye'.encode())
+        send_all(client, 'bye_soft'.encode() if softly else 'bye'.encode())
         recv_all(client)
     except:
         pass
@@ -101,21 +101,23 @@ class Client:
         self.enc_public = enc_public
         self.username = username
         self.app = app
+        self.silent: bool = False
 
-    def heartbeat(self, force_okay: bool = False):
+    def heartbeat(self, force_okay: bool = False, silent: bool = True):
         try:
             send_all(self, "clientGetID".encode("utf-8"), enc=self.enc_public)
             id = recv_all(self, BUFFER_SIZE, enc=self.enc_private).decode("utf-8")
         except: id=''
-        if id == self.id or force_okay: calf('heartbeat', "The server responded.")
+        if id == self.id or force_okay:
+            if not silent: calf('heartbeat', "The server responded.")
         else: calf('heartbeat_error', "The server didn't respond with the same id.")
         return id
 
-    def disconnect(self, softly: bool = False):
-        disconnect_socket(self)
-        if softly:
+    def disconnect(self, softly: bool = False, silent: bool = True):
+        disconnect_socket(self, softly)
+        if softly and not silent:
             calf('disconnect_soft', "User called soft disconnect.")
-        else:
+        elif not softly:
             calf('disconnect', "User called disconnect.")
 
     def send(self, message):
@@ -149,15 +151,15 @@ class Client:
     def receive_objects(self, packet_size=BUFFER_SIZE):
         return load(self.receive(packet_size))
 
-    def auth(self, app=None, username=None, password=''):
-        calf('authenticating', "Called auth.")
+    def auth(self, app=None, username=None, password='', silent: bool = False):
+        if not silent: calf('authenticating', "Called auth.")
         auth_result = 'auth-declined'
         try:
             send_all(self, f'auth:{username or self.username}:{password}:{app or self.app}'.encode(), enc=self.enc_public)
             auth_result = recv_all(self, BUFFER_SIZE, enc=self.enc_private).decode('utf-8')
         except: calf('disconnect', auth_states['auth-canceled'])
         if auth_result == 'auth-declined' or auth_result == 'guest-declined': calf('authentication_fail', auth_states[auth_result])
-        else: calf('authentication_success', auth_states[auth_result])
+        elif not silent: calf('authentication_success', auth_states[auth_result])
         if auth_result == 'auth-accepted':
             self.id = self.heartbeat(True)
 
@@ -213,6 +215,10 @@ class Client:
             elif value:
                 datas[key] = value
 
+    def reconnect(self, password: str = ''):
+        return run(self.app, self.username, password, silent=self.silent)
+
+
 
 def run(app,username,password='',autoauth=True, silent=False):
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -255,7 +261,8 @@ def run(app,username,password='',autoauth=True, silent=False):
 
     if autoauth:
         if not silent: calf('authenticating',"Autoauth was enabled.")
-        cli.auth(password=password)
+        cli.auth(password=password, silent=silent)
+    cli.silent = silent
     return cli
 
 def register(username, password):
