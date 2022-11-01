@@ -128,7 +128,7 @@ class NdenClient(Client):
     sent_objects = None
     id = None
     c = None
-    auth = False
+    authed = False
     def __init__(self):
         pass
 
@@ -137,8 +137,7 @@ class NdenClient(Client):
 
     def receive(self):
         while not self.received: pass
-        temp = self.received
-        self.received = None
+        temp, self.received = self.received, None
         return temp
 
     def send_objects(self, *objs):
@@ -146,8 +145,8 @@ class NdenClient(Client):
 
     def receive_objects(self):
         while not self.received_objects: pass
-        temp = self.received_objects
-        self.received_objects = None
+        temp, self.received_objects = self.received_objects, None
+
         return temp
 
     def disconnect(self):
@@ -162,7 +161,7 @@ class NdenClient(Client):
         if username:
             self.username = username
         self.app = app
-        self.auth = True
+        self.authed = True
 
 
 class Nden(Iden):
@@ -177,17 +176,15 @@ class Nden(Iden):
 
     def receive(self):
         while not self.client.sent: pass
-        temp = self.client.sent
-        self.client.sent = None
+        temp, self.client.sent = self.client.sent, None
         return temp
 
-    def send_objects(self, message):
-        self.client.received_objects = message
+    def send_objects(self, *objs):
+        self.client.received_objects = objs
 
     def receive_objects(self):
         while not self.client.sent_objects: pass
-        temp = self.client.sent_objects
-        self.client.sent_objects = None
+        temp, self.client.sent_objects = self.client.sent_objects, None
         return temp
 
 # Make ID for client
