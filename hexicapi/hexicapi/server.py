@@ -257,7 +257,8 @@ def complete_grid_off(c, logger):
         try:
             connections[c].room.disconnect()
         except AttributeError:
-            logger("Room doesn't have disconnect function or it failed", logg.WARNING)
+            if log:
+                logger("Room doesn't have disconnect function or it failed", logg.WARNING)
 
     discon(c)
     connections[c].thread = False
@@ -323,6 +324,10 @@ def client_handle(cs,c):
             elif d == 'bye':
                 send_all(connections[c], 'see you later!'.encode())
                 complete_grid_off(c, logg.client_handle)
+                break
+            elif d == 'bye_soft':
+                send_all(connections[c], 'see you later!'.encode())
+                complete_grid_off(c, logg.client_handle_soft)
                 break
             elif string and d.split(":")[0] == "auth":
                 _, username, password, app = d.split(":")
