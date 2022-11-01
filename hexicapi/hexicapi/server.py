@@ -603,7 +603,7 @@ def shadow(f):
 
 def worlds_handler(Client: Iden, message: str):
     if message.startswith('worlds:join:'):
-        world = message.split(':')[1]
+        world = message.split(':')[2]
         if not world in worlds.keys():
             Client.send('not ok')
             return
