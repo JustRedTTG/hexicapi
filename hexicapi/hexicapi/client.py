@@ -200,6 +200,19 @@ class Client:
         response_positions, response_data = self.receive_objects()
         return response_positions, response_data
 
+    def handle_world_data(self, positions: dict, datas: dict, position: tuple = None, data: any = None):
+        response_positions, response_data = self.update_world(position, data)
+        for key, value in response_positions.items():
+            if not value and key in positions.keys():
+                del positions[key]
+            elif value:
+                positions[key] = value
+        for key, value in response_data.items():
+            if not value and key in datas.keys():
+                del datas[key]
+            elif value:
+                datas[key] = value
+
 
 def run(app,username,password='',autoauth=True, silent=False):
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
