@@ -608,7 +608,8 @@ def worlds_handler(Client: Iden, message: str):
             Client.send('not ok')
             return
         worlds[world]['players'].append(Client.id)
-        worlds[world]['positions'][Client.id] = worlds[world]['start_pos']
+        worlds[world]['positions'][Client.id] = worlds[world]['defaults']['position']
+        worlds[world]['data'][Client.id] = worlds[world]['defaults']['data']
         Client.send('ok')
         Client.receive()
         Client.send_objects(worlds[world])
