@@ -34,10 +34,15 @@ worlds = {}
 
 class WorldRoom:
     world: str
+    id: str
     knows = {}
     knows_data = {}
-    def __init__(self, world):
+    def __init__(self, world, id):
         self.world = world
+        self.id = id
+    def disconnect(self):
+        worlds[self.world]['players'].remove(self.id)
+        del worlds[self.world]['positions'][self.id]
 
 
 class Iden:
@@ -247,6 +252,12 @@ def complete_grid_off(c, logger):
         if log:
             logger(f"Client disconnect handle, failed.", logg.ERROR)
         ret = False
+    if connections[c].room:
+        try:
+            connections[c].room.disconnect()
+        except AttributeError:
+            logger("Room doesn't have disconnect function or it failed", logg.WARNING)
+
     discon(c)
     connections[c].thread = False
     console.append([connections[c].username + " disconnected", connections[c].app])
@@ -613,7 +624,7 @@ def worlds_handler(Client: Iden, message: str):
         Client.send('ok')
         Client.receive()
         Client.send_objects(worlds[world])
-        Client.room = WorldRoom(world)
+        Client.room = WorldRoom(world, Client.id)
     elif message == 'worlds:position':
         if Client.room and Client.room.world in worlds.keys():
             Client.send('ok')
