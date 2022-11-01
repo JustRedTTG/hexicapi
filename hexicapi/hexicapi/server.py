@@ -5,10 +5,10 @@ from random import randint
 from hexicapi.save import save, load
 from hexicapi.encryption import *
 from hexicapi.registrator import *
+import hexicapi.redlogger as logg
 private_key, public_key = None, None
 silent = False
 log = True
-logg = None
 ltar = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 identifier = 0
 BUFFER_SIZE = 1024
@@ -484,7 +484,6 @@ def run(silentQ=False, logQ=True, enable_no_die=False):
     silent = silentQ
     log = logQ
     if log:
-        import hexicapi.redlogger as logg
         logg.init()
         logg.silent = silent
     try:
