@@ -43,6 +43,7 @@ class WorldRoom:
     def disconnect(self):
         worlds[self.world]['players'].remove(self.id)
         del worlds[self.world]['positions'][self.id]
+        del worlds[self.world]['data'][self.id]
 
 
 class Iden:
