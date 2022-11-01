@@ -99,6 +99,7 @@ class Client:
         self.enc_public = enc_public
         self.username = username
         self.app = app
+
     def heartbeat(self, force_okay: bool = False):
         try:
             send_all(self, "clientGetID".encode("utf-8"), enc=self.enc_public)
@@ -107,9 +108,11 @@ class Client:
         if id == self.id or force_okay: calf('heartbeat', "The server responded.")
         else: calf('heartbeat_error', "The server didn't respond with the same id.")
         return id
+
     def disconnect(self):
         disconnect_socket(self)
         calf('disconnect', "User called disconnect.")
+
     def send(self, message):
         if not isinstance(message, str):
             try: send_all(self, message, enc=self.enc_public)
@@ -123,6 +126,7 @@ class Client:
                     if debug: print(traceback.format_exc())
                     return False
         return True
+
     def receive(self, packet_size = BUFFER_SIZE, skip_str=False):
         try: m = recv_all(self, packet_size, enc=self.enc_private)
         except Exception:
@@ -133,10 +137,13 @@ class Client:
         except Exception:
             if debug: print(traceback.format_exc())
             return m
+
     def send_objects(self, *objs):
         self.send(save(None, *objs))
+
     def receive_objects(self, packet_size=BUFFER_SIZE):
         return load(self.receive(packet_size))
+
     def auth(self, app=None, username=None, password=''):
         calf('authenticating', "Called auth.")
         auth_result = 'auth-declined'
@@ -148,6 +155,7 @@ class Client:
         else: calf('authentication_success', auth_states[auth_result])
         if auth_result == 'auth-accepted':
             self.id = self.heartbeat(True)
+
     def send_large(self, data):
         self.send(str(len(data)))
         self.receive()
@@ -157,6 +165,7 @@ class Client:
         for i in range(0, len(data), FILE_SERVING_SIZE):
             self.send(data[i:i+FILE_SERVING_SIZE])
             self.receive()
+
     def receive_large(self):
         length = int(self.receive())
         self.send('ok')
@@ -165,6 +174,26 @@ class Client:
             data += self.receive(skip_str=True, packet_size=length)
             self.send('ok')
         return data
+
+    def join_world(self, name):
+        self.send(f'worlds:join:{name}') # Join request
+        if self.receive() == 'not ok': return False # Can't join
+        self.send('ready') # Ready to receive world data
+        return self.receive_objects()[0] # World dictionary from the server
+
+    def update_world(self, position: tuple = None, data: any = None, all_data: bool = False):
+        self.send(f'worlds:position') # Update request
+        if self.receive() == 'not ok': return False # Can't access update
+        packet = {
+            'all_data': all_data
+        }
+        if position:
+            packet['position'] = position
+        if data:
+            packet['data'] = data
+        self.send_objects(packet)
+        response_positions, response_data = self.receive_objects()
+        return response_positions, response_data
 
 
 def run(app,username,password='',autoauth=True, silent=False):
