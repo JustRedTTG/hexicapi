@@ -68,7 +68,11 @@ def init(location = "logs"):
     if not os.path.exists(os.path.join(loc, 'old')):
         os.makedirs(os.path.join(loc, 'old'))
     if os.path.exists(os.path.join(loc, 'info')):
-        files, zipfiles = load(os.path.join(loc, 'info'))
+        try:
+            files, zipfiles = load(os.path.join(loc, 'info'))
+        except:
+            save(os.path.join(loc, 'info'), [], [])
+            return init(location)
         am = 0
         am1 = 0
         y = False
