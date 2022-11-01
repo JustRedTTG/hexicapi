@@ -7,7 +7,7 @@ client.basic_on_calf() # Note: provide False if you don't want the colorama colo
 client.ip = "127.0.0.1" # Set the server ip
 client.port = 8181 # Set the server port
 
-Client = client.run('example',f'guest{randint(111,999)}') # Connect
+Client = client.run('example',f'guest{randint(111,999)}', silent=True) # Connect
 
 Client.send('world_list')
 worlds = Client.receive_objects()
@@ -18,15 +18,15 @@ Available worlds: """, *worlds, sep='\n')
 world_name = input('> ')
 
 # Reconnect
-Client = client.run('example',f'guest{randint(111,999)}') # Connect
+Client = Client.reconnect()
 
 world = Client.join_world(world_name)
 if not world:
     print("Couldn't join the world :(")
     Client.disconnect()
 
-print(f'World: {world}')
-print(f"{world_name} description: \n{world['description']}")
+print(f'\nWorld: {world}\n')
+print(f"{world_name} description: \n{world['description']}\n")
 
 positions, datas = {}, {} # Set blank positions and datas
 Client.handle_world_data(positions, datas) # Get everything stored into positions and datas
