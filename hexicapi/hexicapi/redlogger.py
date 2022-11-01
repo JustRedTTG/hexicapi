@@ -20,27 +20,28 @@ def close_log():
         save(os.path.join(loc, 'info'), files, zipfiles)
 atexit.register(close_log)
 
+
 def datemaker():
     date = datetime.datetime.now()
     return f'{date.day}-{date.month}-{date.year} {int(date.hour)}.{int(date.minute)}.{int(date.second)}'
+
+
 colors = {
-    'OK':Fore.LIGHTBLUE_EX,
-    'INFO':Fore.GREEN,
-    'WARNING':Fore.YELLOW,
-    'ERROR':Fore.LIGHTRED_EX,
-    'FATAL':Fore.RED,
-    'LOG':Fore.CYAN,
-    'EXIT':Fore.RESET
+    'OK': Fore.LIGHTBLUE_EX,
+    'OK_SOFT': Fore.LIGHTBLACK_EX,
+    'INFO': Fore.GREEN,
+    'WARNING': Fore.YELLOW,
+    'ERROR': Fore.LIGHTRED_EX,
+    'FATAL': Fore.RED,
+    'LOG': Fore.CYAN,
+    'EXIT': Fore.RESET
 }
+
+
 def funk(name):
-    names = name.split(' ')
-    string = ''
-    i = 0
-    while i < len(names)-1:
-        string += name[0].upper()+name[1:]+' '
-        i += 1
-    string += name[0].upper() + name[1:]
-    return string
+    return ' '.join([item.capitalize() for item in name.split('_')])
+
+
 def log(name:str, info:str, sign:str="LOG"):
     global firstL
     if not firstL:
@@ -48,11 +49,12 @@ def log(name:str, info:str, sign:str="LOG"):
         latest.write('\n')
     else:
         firstL = False
-    l = f'[{datemaker()}][{funk(name)}/{sign}] - {info}'
+    l = f'[{datemaker()}][{funk(name)}/{" ".join(sign.split("_"))}] - {info}'
     logFile.write(l)
     latest.write(l)
     if not silent:
         print(colors[sign]+l+colors['EXIT'])
+
 
 def init(location = "logs"):
     global loc, logFile, firstL, latest, files, zipfiles
@@ -119,17 +121,14 @@ FATAL = "FATAL"
 WARNING = "WARNING"
 INFO = "INFO"
 OK = "OK"
+OK_SOFT = "OK_SOFT"
+
 
 # Loggers
-def server(i, s=INFO):
-    log('server', i, s)
-def client_handle(i, s=OK):
-    log('client_handle', i, s)
-def shadow(i, s=OK):
-    log('shadow', i, s)
-def connection_acceptor(i, s=INFO):
-    log('connection', i, s)
-def reader(i, s=WARNING):
-    log('reader', i, s)
-def debug(i, s=INFO):
-    log('debug', i, s)
+server = lambda i, s=INFO: log('server', i, s)
+client_handle = lambda i, s=OK: log('client_handle', i, s)
+client_handle_soft = lambda i, s=OK_SOFT: log('client_handle', i, s)
+shadow = lambda i, s=OK: log('shadow', i, s)
+connection_acceptor = lambda i, s=INFO: log('connection', i, s)
+reader = lambda i, s=WARNING: log('reader', i, s)
+debug = lambda i, s=INFO: log('debug', i, s)
