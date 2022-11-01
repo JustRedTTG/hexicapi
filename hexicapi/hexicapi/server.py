@@ -1,6 +1,7 @@
 import threading,traceback
 from hexicapi.socketMessage import *
 from hexicapi.verinfo import __version__
+from hexicapi.client import Client
 from random import randint
 from hexicapi.save import save, load
 from hexicapi.encryption import *
@@ -117,7 +118,7 @@ class Iden:
     def diminish_privilege(self):
         return diminish_privilege(self.username)
 
-class NdenClient:
+class NdenClient(Client):
     app = 'shadow'
     username = f'shadow{randint(111,999)}'
     active = True
@@ -128,6 +129,8 @@ class NdenClient:
     id = None
     c = None
     auth = False
+    def __init__(self):
+        pass
 
     def send(self, message):
         self.sent = message
