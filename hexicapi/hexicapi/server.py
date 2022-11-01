@@ -30,6 +30,15 @@ shadows = []
 app_disconnect_handle={}
 #
 console = [["Welcome To The Server!","all"]]
+worlds = {}
+
+class WorldRoom:
+    world: str
+    knows = {}
+    knows_data = {}
+    def __init__(self, world):
+        self.world = world
+
 
 class Iden:
     def __init__(self, id, cs):
@@ -233,7 +242,6 @@ def complete_grid_off(c, logger):
     try:
         if connections[c].app in app_disconnect_handle:
             ret = app_disconnect_handle[connections[c].app](connections[c])
-            worlds_disconnect_handle
             if ret is None: ret = True
     except Exception:
         if log:
@@ -593,7 +601,7 @@ def shadow(f):
     id, c = makeID()
     shadows.append([c, f, id])
 
-def worlds_handler(Client: Iden, message: str, worlds: dict):
+def worlds_handler(Client: Iden, message: str):
     if message.startswith('worlds:join:'):
         world = message.split(':')[1]
         if not world in worlds.keys():
@@ -604,34 +612,53 @@ def worlds_handler(Client: Iden, message: str, worlds: dict):
         Client.send('ok')
         Client.receive()
         Client.send_objects(worlds[world])
-        Client.data = {'world': world, 'knows': {}}
+        Client.room = WorldRoom(world)
     elif message == 'worlds:position':
-        if Client.data and Client.data['world'] in worlds.keys():
+        if Client.room and Client.room.world in worlds.keys():
             Client.send('ok')
         else:
             Client.send('not ok')
             return
         data = Client.receive_objects()[0]
-        worlds[Client.data['world']]['positions'][Client.id] = data['position']
-        response = {}
+        if 'position' in data.keys():
+            worlds[Client.room.world]['positions'][Client.id] = data['position']
+        if 'data' in data.keys():
+            worlds[Client.room.world]['data'][Client.id] = data['data']
+        response_positions = {}
+        response_data = {}
         if data['all_data']:
-            for player in server.connections:
-                if player.data and player.data['world'] == Client.data['world']:
-                    response[player.id] = worlds[player.data['world']]['positions'][player.id]
+            for id in worlds[Client.room.world]['players']:
+                response_positions[id] = worlds[Client.room.world]['positions'][id]
+                response_data[id] = worlds[Client.room.world]['data'][id]
         else:
-            for player in server.connections:
-                if player.data and player.data['world'] == Client.data['world']:
-                    if player.id in Client.data['knows'].keys():
-                        if Client.data['knows'][player.id] != worlds[player.data['world']]['positions'][player.id]:
-                            response[player.id] = worlds[player.data['world']]['positions'][player.id]
-                    else:
-                        response[player.id] = worlds[player.data['world']]['positions'][player.id]
-        for key in Client.data['knows'].keys():
-            if not key in worlds[Client.data['world']]['players']:
-                response[key] = None
-        for key, data in response.items():
-            if not data:
-                del Client.data['knows'][key]
-            else:
-                Client.data['knows'][key] = data
-        Client.send_objects(response)
+            for id in worlds[Client.room.world]['players']:
+                if (not id in Client.room.knows.keys()) or Client.room.knows[id] != worlds[Client.room.world]['positions'][id]:
+                    response_positions[id] = worlds[Client.room.world]['positions'][id]
+                    Client.room.knows[id] = response_positions[id]
+                if (not id in Client.room.knows_data.keys()) or Client.room.knows_data[id] != worlds[Client.room.world]['data'][id]:
+                    response_data[id] = worlds[Client.room.world]['data'][id]
+                    Client.room.knows_data[id] = response_data[id]
+        for key in Client.room.knows.keys():
+            if not key in worlds[Client.room.world]['players']:
+                response_positions[key] = None
+                response_data[key] = None
+                Client.room.knows[key]
+                Client.room.knows_data[key]
+        Client.send_objects(response_positions, response_data)
+    else: return False
+    return True
+
+def make_world(name: str, default_position: tuple, default_data: any = None, other: dict = {}):
+    global worlds
+    worlds[name] = {
+        'players': [],
+        'positions': {},
+        'data': {},
+        'defaults': {
+            'position': default_position,
+            'data': default_data
+        }
+    }
+    if not other: return
+    for key, value in other.items():
+        worlds[name][key] = value
