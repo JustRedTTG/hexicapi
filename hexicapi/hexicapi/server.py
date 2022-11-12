@@ -631,7 +631,7 @@ def worlds_handler(Client: Iden, message: str):
         Client.send_objects(worlds[world])
         Client.room = WorldRoom(world, Client.id)
     elif message == 'worlds:position':
-        if Client.room and Client.room.world in worlds.keys():
+        if Client.room and isinstance(Client.room, WorldRoom) and Client.room.world in worlds.keys():
             Client.send('ok')
         else:
             Client.send('not ok')
@@ -659,8 +659,8 @@ def worlds_handler(Client: Iden, message: str):
             if not key in worlds[Client.room.world]['players']:
                 response_positions[key] = None
                 response_data[key] = None
-                Client.room.knows[key]
-                Client.room.knows_data[key]
+                del Client.room.knows[key]
+                del Client.room.knows_data[key]
         Client.send_objects(response_positions, response_data)
     else: return False
     return True

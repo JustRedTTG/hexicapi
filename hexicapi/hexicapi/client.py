@@ -203,7 +203,7 @@ class Client:
         return response_positions, response_data
 
     def handle_world_data(self, positions: dict, datas: dict, position: tuple = None, data: any = None):
-        response_positions, response_data = self.update_world(position, data)
+        response_positions, response_data = self.update_world(position, data, True)
         for key, value in response_positions.items():
             if not value and key in positions.keys():
                 del positions[key]
