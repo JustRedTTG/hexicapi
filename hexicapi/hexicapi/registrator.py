@@ -107,6 +107,9 @@ class action:
 def forced_register(username: str, password: str, force_delete: bool = False):
     username_hash = hash256(username.encode('utf-8')).hexdigest()
     password_hash = hash256(password.encode('utf-8')).hexdigest()
+    if not os.path.isdir('users'):
+        os.mkdir('users')
+
     for i in os.listdir('users'):
         if i == username_hash and force_delete:
             shutil.rmtree(os.path.join('users', i))
