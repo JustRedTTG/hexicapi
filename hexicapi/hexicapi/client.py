@@ -1,3 +1,4 @@
+from __future__ import annotations
 import traceback, pickle
 
 import colorama
@@ -218,7 +219,11 @@ class Client:
     def reconnect(self, password: str = ''):
         return run(self.app, self.username, password, silent=self.silent)
 
+    def __enter__(self) -> Client:
+        return self
 
+    def __exit__(self, *exceptions) -> None:
+        self.disconnect()
 
 def run(app,username,password='',autoauth=True, silent=False):
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
