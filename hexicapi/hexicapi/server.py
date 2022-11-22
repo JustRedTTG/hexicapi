@@ -118,6 +118,14 @@ class Iden:
     def diminish_privilege(self):
         return diminish_privilege(self.username)
 
+    def encrypted_file(self, name, data):
+        username_hash = hash256(self.username).hexdigest()
+        return encrypt_file_ring(os.path.join('users',username_hash, name), data, self.keyring)
+
+    def decrypted_file(self, name):
+        username_hash = hash256(self.username).hexdigest()
+        return decrypt_file_ring(os.path.join('users', username_hash, name), self.keyring)
+
 class NdenClient(Client):
     app = 'shadow'
     username = f'shadow{randint(111,999)}'
