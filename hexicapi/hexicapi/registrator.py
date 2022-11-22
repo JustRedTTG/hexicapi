@@ -29,7 +29,12 @@ def encrypt_file_ring(path, data, password_key_ring):
         f.write(encrypt_ring(data, password_key_ring))
 def encrypt_file(path, data, password): return encrypt_file_ring(path, data, password_completer(password))
 
+def decrypt_file_ring(path, password_key_ring):
+    with open(path, 'rb') as f:
+        data = decrypt_ring(f.read(), password_key_ring)
+    return data
 
+def decrypt_file(path, password): return decrypt_file_ring(path, password_completer(password))
 
 def register_handle(Client, message):
     if message == "check_username":
