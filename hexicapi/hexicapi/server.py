@@ -119,11 +119,11 @@ class Iden:
         return diminish_privilege(self.username)
 
     def encrypted_file(self, name, data):
-        username_hash = hash256(self.username).hexdigest()
+        username_hash = hash256(self.username.encode()).hexdigest()
         return encrypt_file_ring(os.path.join('users',username_hash, name), data, self.keyring)
 
     def decrypted_file(self, name):
-        username_hash = hash256(self.username).hexdigest()
+        username_hash = hash256(self.username.encode()).hexdigest()
         return decrypt_file_ring(os.path.join('users', username_hash, name), self.keyring)
 
 class NdenClient(Client):
