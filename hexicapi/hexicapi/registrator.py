@@ -12,16 +12,24 @@ def password_completer(password:str):
     if len(password)>32: return base64.urlsafe_b64encode(password[32:])
     while len(password)<32: password += '-'
     return base64.urlsafe_b64encode(password.encode('utf-8'))
-def encrypt_ring(data, password):
-    f = Fernet(password)
+def encrypt_ring(data, password_key_ring):
+    f = Fernet(password_key_ring)
     return f.encrypt(data)
 
 def encrypt(data, password): return encrypt_ring(data, password_completer(password))
 
-def decrypt_ring(data, password):
-    f = Fernet(password)
+def decrypt_ring(data, password_key_ring):
+    f = Fernet(password_key_ring)
     return f.decrypt(data)
 def decrypt(data, password): return decrypt_ring(data, password_completer(password))
+
+
+def encrypt_file_ring(path, data, password_key_ring):
+    with open(path, 'wb') as f:
+        f.write(encrypt_ring(data, password_key_ring))
+def encrypt_file(path, data, password): return encrypt_file_ring(path, data, password_completer(password))
+
+
 
 def register_handle(Client, message):
     if message == "check_username":
