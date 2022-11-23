@@ -1,5 +1,5 @@
 __title__ = 'HexicAPI'
-__version__ = '1.0.730'
+__version__ = '1.0.731'
 __author__ = 'RedTTG'
 __license__ = 'MIT'
 __copyright__ = 'Your free to make distributions.'
