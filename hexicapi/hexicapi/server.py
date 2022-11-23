@@ -345,6 +345,7 @@ def client_handle(cs,c):
                 if username == '':
                     send_all(connections[c], "guest-declined-no-username".encode(),enc=connections[c].key)
                     break
+                id_before = connections[c].id
                 accept,guest=action.auth(connections[c],username,str(password),app,get_allow_guest(app))
                 if accept and not guest:
                     connections[c].username=username
@@ -353,6 +354,8 @@ def client_handle(cs,c):
                     connections[c].guest=False
                     send_all(connections[c], "auth-accepted".encode(),enc=connections[c].key)
                     console.append([f"User {username} logged on", app])
+                    if log:
+                        logg.client_handle_soft(f"Client {id_before} -> {connections[c].id} authenticated!")
                 elif accept and guest:
                     no=True
                     for con in connections:
