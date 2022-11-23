@@ -69,9 +69,12 @@ class Iden:
         try:
             _ = message.decode()
             send_all(self, message,enc=self.key)
-        except:
+        except (AttributeError, UnicodeDecodeError) as e:
             try: send_all(self, message.encode(),enc=self.key)
             except: send_all(self, message,enc=self.key)
+        except: # Asume socket falt
+            del self.socket
+            self.thread = False
 
     def receive(self, packet_size = BUFFER_SIZE, skip_str=False):
         try: m = recv_all(self, packet_size,enc=private_key)
