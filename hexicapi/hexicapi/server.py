@@ -418,6 +418,7 @@ def read():
         except:
             if log: logg.reader("Detected an interruption.")
             stop()
+            break
         if inp == "ipbans":
             for ip in ipbans:
                 if ip[1]>=10:
