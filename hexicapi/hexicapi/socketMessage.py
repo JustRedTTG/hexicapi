@@ -1,6 +1,7 @@
 import socket, time
 import traceback
 
+from hexicapi.connectors import Connector
 from hexicapi.verinfo import __version__, __title__, __author__, __license__, __copyright__
 from hexicapi.encryption import *
 working = []
@@ -30,7 +31,7 @@ def clean_working_record():
             else: print(f'TRYING TO REMOVE {item[0]} in {working}')
             record.remove(item)
 def recv_all(client, packet_size=1024, skip=False, enc=None):
-    if isinstance(client, socket.socket):
+    if isinstance(client, Connector) or isinstance(client, socket.socket):
         the_socket = client
         client_id = client.getsockname()
     else:
@@ -76,7 +77,7 @@ def recv_all(client, packet_size=1024, skip=False, enc=None):
 class data_not_bytes(Exception):
     pass
 def send_all(client, data, skip=False, enc=None):
-    if isinstance(client, socket.socket):
+    if isinstance(client, Connector) or isinstance(client, socket.socket):
         the_socket = client
         client_id = client.getsockname()
     else:

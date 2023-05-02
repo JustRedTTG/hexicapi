@@ -1,5 +1,6 @@
 from __future__ import annotations
 import traceback, pickle
+from typing import Type
 
 import colorama
 
@@ -7,11 +8,12 @@ from hexicapi.socketMessage import *
 from hexicapi.encryption import *
 from hexicapi.save import save, load
 from hexicapi.verinfo import __version__
+from hexicapi.connectors import Connector, TCPConnector, AddressException
+
 BUFFER_SIZE = 1024
 FILE_SERVING_SIZE = 32768
 
-ip = "localhost"
-port = 81
+HOST = 'localhost:81'
 debug = False
 
 functions={ # print(list(functions)) - > shows all available functions
@@ -225,11 +227,13 @@ class Client:
     def __exit__(self, *exceptions) -> None:
         self.disconnect()
 
-def run(app,username,password='',autoauth=True, silent=False):
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+def run(app: str, username: str, password: str = '', autoauth: bool = True, silent: bool = False, connector: Type[Connector] = TCPConnector):
+    s = connector()
     if not silent: calf('connecting', "The client was ran.")
     try:
-        s.connect((ip,port))
+        s.connect(HOST)
+    except AddressException:
+        calf('connection_fail', "Address malformed")
     except:
         calf('connection_fail', "Couldn't make a connection to the provided port and ip.")
         return
@@ -262,7 +266,7 @@ def run(app,username,password='',autoauth=True, silent=False):
     recv_all(CLI(id, s), enc=enc_private)
     if not silent: calf('handshake', "Encryption handshake.")
 
-    cli = Client(ip, port, s, id, enc_private, enc_public, username, app)
+    cli = Client(*s.getsockname(), s, id, enc_private, enc_public, username, app)
 
     if autoauth:
         if not silent: calf('authenticating',"Autoauth was enabled.")

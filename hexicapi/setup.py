@@ -20,6 +20,6 @@ setup(
     long_description_content_type="text/markdown",
     long_description=long,
     packages=['hexicapi'],
-    install_requires=['bottle','cryptography >= 3.1','colorama'],
+    install_requires=['cryptography >= 3.1', 'colorama', 'websocket-client'],
     keywords=['python']
 )
