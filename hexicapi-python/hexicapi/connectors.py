@@ -31,7 +31,6 @@ class TCPConnector(Connector):
         if not split[-1]: raise AddressException("Address is missing port after colon")
         if not split[0]: raise AddressException("Address is missing ip before colon")
         self.sockname = (split[0], int(split[1]))
-        print(self.sockname)
         try:
             self.s.connect(self.sockname)
         except ValueError:

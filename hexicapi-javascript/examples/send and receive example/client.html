@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Send & Receive</title>
+</head>
+
+<body>
+<style>
+  body div {
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+  }
+</style>
+
+<div><p>HexicAPI version: </p><p id="ver"></p></div>
+<div><p>Status: </p><p id="status"></p></div>
+<div><p>Received message: </p><p id="recv"></p></div>
+
+<script src="../../hexicapi/verinfo.js"></script>
+<script src="../../hexicapi/connectors.js"></script>
+<script src="../../hexicapi/client.js"></script>
+<script src="../../hexicapi/socketMessage.js"></script>
+<script async>
+  async function loaded(){
+  
+  document.getElementById('ver').innerHTML = hexicapi_version;
+  status = document.getElementById('status');
+  hapi = new HexicAPI();
+  hapi.HOST = "wss://hexicapi.redttg.com";
+  client = await hapi.run("ping", "guest");
+  
+  document.getElementById('recv').innerHTML = client.receive();
+  
+    
+  }
+  loaded()
+</script>
+</body>
+</html>
