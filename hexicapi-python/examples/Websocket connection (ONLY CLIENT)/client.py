@@ -8,7 +8,8 @@ c.basic_on_calf()
 
 client = c.run('ping', 'guest', connector=WebsocketConnector)
 
-client.send('Hi')
-print(client.receive())
+for i in range(100):
+    client.send('Hi {i}')
+    print(client.receive())
 
 client.disconnect()

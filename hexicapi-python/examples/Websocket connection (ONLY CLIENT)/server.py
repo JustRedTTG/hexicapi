@@ -1,7 +1,7 @@
 import hexicapi.server as s
 from hexicapi.server import Nden
 
-s.sock_msg_debug = True
+
 s.port = 5000
 
 @s.app

@@ -262,8 +262,13 @@ def run(app: str, username: str, password: str = '', autoauth: bool = True, sile
         enc_public
     )
     enc_private, public_key = generate_keys()
-    send_all(CLI(id, s), public_key, skip=True)
-    recv_all(CLI(id, s), enc=enc_private)
+    try:
+        send_all(CLI(id, s), public_key, skip=True)
+        recv_all(CLI(id, s), enc=enc_private)
+    except UnicodeDecodeError:
+        s.close()
+        if not silent: calf('connection_warning', "Encryption handshake failed.")
+        return run(app, username, password, autoauth, silent, connector)
     if not silent: calf('handshake', "Encryption handshake.")
 
     cli = Client(*s.getsockname(), s, id, enc_private, enc_public, username, app)

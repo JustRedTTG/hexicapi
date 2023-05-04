@@ -60,7 +60,7 @@ def recv_all(client, packet_size=1024, skip=False, enc=None):
 
     data = b''
     while len(data) < data_length:
-        data += the_socket.recv(packet_size)
+        data += the_socket.recv(min(packet_size, data_length-len(data)))
     rm_record(client_id)
     if menc and not skip:
         if sock_msg_debug: print(f"RECV decrypting the following data: >{data}<")

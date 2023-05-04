@@ -36,14 +36,14 @@ class TCPConnector(Connector):
         except ValueError:
             AddressException("Address port isn't a valid value")
 
-    def send(self, data: bytes | bytearray): return self.s.send(data)
+    def send(self, data: bytes): return self.s.send(data)
 
     def recv(self, buffer_size: int): return self.s.recv(buffer_size)
 
     def close(self): return self.s.close()
 
 class WebsocketConnector(Connector):
-
+    buffer = []
     def __init__(self):
         self.s = websocket.WebSocket()
 
@@ -53,8 +53,12 @@ class WebsocketConnector(Connector):
         self.sockname = tuple(self.sockname)
         self.s.connect(address)
 
-    def send(self, data: bytes | bytearray): return self.s.send_binary(data)
+    def send(self, data: bytes): return self.s.send_binary(data)
 
-    def recv(self, buffer_size: int): return self.s.recv()
+    def recv(self, buffer_size: int):
+        if len(self.buffer) < 1: self.buffer.extend(self.s.recv())
+        items = self.buffer[0:min(buffer_size, len(self.buffer))]
+        del self.buffer[0:min(buffer_size, len(self.buffer))]
+        return bytes(items)
 
     def close(self): return self.s.close()
