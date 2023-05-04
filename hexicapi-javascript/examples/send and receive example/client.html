@@ -9,11 +9,13 @@
 
 <body>
 <style>
-  html, body {
+  html, body, #websocket * {
     background-color: black;
     color: greenyellow;
     font-family: 'sans', monospace;
   }
+  #websocket button { border: 2px solid gray; cursor: pointer; }
+  #websocket #form-input { border: 2px solid gray; }
   body div {
     display: flex;
     flex-direction: row;
@@ -28,20 +30,25 @@
   #recv { color: white; }
 </style>
 <h1>HexicAPI Testing page</h1>
+<div id="websocket"><input type="url" id="form-input"><button onclick="test();">Test</button></div>
 <div><p>HexicAPI version: </p><p id="ver"></p></div>
 <div><p>Received message: </p><p id="recv"></p></div>
 <div><p>Status:</p><p id="status"></p><p>Calf:</p><p id="calf"></p></div>
 
+<!--MANUAL INCLUSION AND ORDER-->
+<!--<script src="../../hexicapi/verinfo.js"></script>-->
+<!--<script src="../../hexicapi/connectors.js"></script>-->
+<!--<script src="../../hexicapi/client.js"></script>-->
+<!--<script src="../../hexicapi/socketMessage.js"></script>-->
 
-<script src="../../hexicapi/verinfo.js"></script>
-<script src="../../hexicapi/connectors.js"></script>
-<script src="../../hexicapi/client.js"></script>
-<script src="../../hexicapi/socketMessage.js"></script>
+<!--USING MIN-->
+<script src="../../hexicapi.client.js"></script>
 <script async>
   class MyCalfManager extends CalfManager {
     constructor() {
       super();
       this.calf_el = document.getElementById('calf');
+      this.calf_el.innerHTML = '';
     }
     async calf(type, reason) {
       let value = await this.get_msg(type, reason);
@@ -50,15 +57,15 @@
   }
 
   async function loaded(){
-  
+
   document.getElementById('ver').innerHTML = hexicapi_version;
   let status = document.getElementById('status');
-  status.innerHTML = "HexicAPI"
+  status.innerHTML = "HexicAPI";
   let hapi = new HexicAPI();
   hapi.cm = new MyCalfManager();
   hapi.cm.basic_on_calf(false);
   status.innerHTML += "<br>Connecting...";
-  hapi.HOST = "wss://hexicapi.redttg.com";
+  hapi.HOST = "wss://"+document.getElementById('form-input').value;
   let client = await hapi.run("ping", "guest");
   status.innerHTML += "<br>Connected";
   let should = "HexicAPI is working";
@@ -83,7 +90,12 @@
   await client.disconnect();
   status.innerHTML += "<br>Disconnected";
   }
-  loaded()
+  function test() {
+    localStorage.setItem('url', document.getElementById('form-input').value);
+    loaded();
+  }
+
+  document.getElementById('form-input').value = localStorage.getItem('url');
 </script>
 </body>
 </html>
