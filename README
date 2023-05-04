@@ -1,0 +1,18 @@
+# Hexic API
+A quick way to make cross-platform TCP server for use in games and other things
+## Hexic API is great because:
+- It has end-to-end encryption
+- It supports threads and ip banning
+- It has user and guest management
+-- Support for user data encryption
+-- Custom IDs
+-- Admin management
+
+# Usage
+
+## Websocket testing and usage!
+- Make a hexicapi server in the normal manner, remember your ip:port (most probably use localhost here for the ip)
+- Make a cloudflare tunnel (you can use cloudflared to make a temporary tunnel or install a service and make a permanent tunnel with cloudflare)
+- Connect using the provided websocket
+
+Provided you don't have any security on the cloudflare tunnel you should easily be able to connect through and receive things just as normal, works both with python and javascript
