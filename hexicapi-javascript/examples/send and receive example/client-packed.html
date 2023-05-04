@@ -33,10 +33,7 @@
 <div><p>Status:</p><p id="status"></p><p>Calf:</p><p id="calf"></p></div>
 
 
-<script src="../../hexicapi/verinfo.js"></script>
-<script src="../../hexicapi/connectors.js"></script>
-<script src="../../hexicapi/client.js"></script>
-<script src="../../hexicapi/socketMessage.js"></script>
+<script src="../../hexicapi.client.js"></script>
 <script async>
   class MyCalfManager extends CalfManager {
     constructor() {
@@ -50,7 +47,7 @@
   }
 
   async function loaded(){
-  
+
   document.getElementById('ver').innerHTML = hexicapi_version;
   let status = document.getElementById('status');
   status.innerHTML = "HexicAPI"

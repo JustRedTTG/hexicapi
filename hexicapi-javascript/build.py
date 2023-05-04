@@ -1,8 +1,10 @@
 import os
+from jsmin import jsmin
 
 order = [
   'verinfo.js',
   'connectors.js',
+  'socketMessage.js',
   'client.js'
 ]
 
@@ -12,7 +14,7 @@ hexicapi = []
 
 for file in order:
   with open(os.path.join('hexicapi', file), 'r') as f:
-    hexicapi.extend(f.readline())
+    hexicapi.extend(jsmin(f.read()))
     
 print("Building...")
 
