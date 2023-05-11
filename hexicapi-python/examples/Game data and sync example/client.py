@@ -4,8 +4,7 @@ from random import randint
 # All versions beyond hexicapi 1.0.728 allow you to instantly set up a basic array of on call functions
 client.basic_on_calf() # Note: provide False if you don't want the colorama colors to the text
 
-client.ip = "127.0.0.1" # Set the server ip
-client.port = 8181 # Set the server port
+client.HOST = "127.0.0.1:8181" # Set the server host
 
 
 Client = client.run('example', 'Example', 'password') # Connect

@@ -279,6 +279,13 @@ def run(app: str, username: str, password: str = '', autoauth: bool = True, sile
     cli.silent = silent
     return cli
 
+class runAs:
+    def __init__(self, app: str, username: str, password: str = '', autoauth: bool = True, silent: bool = False, connector: Type[Connector] = TCPConnector):
+        self.cli = run(app, username, password, autoauth, silent, connector)
+    def __enter__(self) -> Client: return self.cli
+
+    def __exit__(self, exc_type, exc_val, exc_tb): self.cli.disconnect(True, True)
+
 def register(username, password):
     calf('registering', 'Begin Registration.')
     Client = run('registration', username, silent=True)
