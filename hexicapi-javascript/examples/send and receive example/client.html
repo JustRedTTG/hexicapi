@@ -80,7 +80,7 @@
   status.innerHTML += "<br>Receiving...";
   let text = await client.receive();
   document.getElementById('recv').innerHTML = text;
-  if (text === should) {
+  if (text === client.id) {
     status.innerHTML += "<br>Received successfully";
   } else {
     status.innerHTML += "<br>Dropped packet";
